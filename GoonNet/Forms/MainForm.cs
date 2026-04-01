@@ -130,38 +130,77 @@ public class MainForm : Form
 
     private void BuildToolStrip()
     {
-        var bar = new ToolStrip
+        // ── Navigation bar — switches between main screens ────────────────────
+        var navBar = new ToolStrip
         {
             GripStyle = ToolStripGripStyle.Hidden,
             RenderMode = ToolStripRenderMode.System,
-            BackColor = SystemColors.Control,
+            BackColor = Color.FromArgb(30, 60, 100),   // dark blue
+            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold)
+        };
+
+        ToolStripButton NavBtn(string text, string tip, Action action)
+        {
+            var b = new ToolStripButton(text)
+            {
+                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                ToolTipText = tip,
+                ForeColor = Color.FromArgb(200, 230, 255),
+                Margin = new Padding(1, 0, 1, 0)
+            };
+            b.Click += (s, e) => action();
+            return b;
+        }
+
+        navBar.Items.AddRange(new ToolStripItem[]
+        {
+            NavBtn("🖥 Studio",    "Open Studio player",       OpenStudio),
+            NavBtn("🎵 Library",   "Music Library",            OpenMusicLibrary),
+            NavBtn("📅 Schedule",  "Event Scheduler",          OpenScheduler),
+            NavBtn("📋 Playlists", "Playlist Editor",          OpenPlaylistEditor),
+            new ToolStripSeparator(),
+            NavBtn("📂 Files",     "File Manager",             OpenFileManager),
+            NavBtn("📜 Log",       "Broadcast Log Viewer",     OpenLogViewer),
+            NavBtn("👤 Users",     "User Manager",             OpenUserManager),
+        });
+        Controls.Add(navBar);
+
+        // ── Operations bar — transport and quick-action buttons ───────────────
+        var opsBar = new ToolStrip
+        {
+            GripStyle = ToolStripGripStyle.Hidden,
+            RenderMode = ToolStripRenderMode.System,
+            BackColor = Color.FromArgb(50, 30, 30),    // dark maroon/red
             Font = new Font("Microsoft Sans Serif", 8f)
         };
 
-        var btnStudio = new ToolStripButton("Studio") { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = "Open Studio" };
-        btnStudio.Click += (s, e) => OpenStudio();
-
-        var btnLibrary = new ToolStripButton("Library") { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = "Music Library" };
-        btnLibrary.Click += (s, e) => OpenMusicLibrary();
-
-        var btnSchedule = new ToolStripButton("Schedule") { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = "Scheduler" };
-        btnSchedule.Click += (s, e) => OpenScheduler();
-
-        var btnStop = new ToolStripButton("STOP ALL") { DisplayStyle = ToolStripItemDisplayStyle.Text, ForeColor = Color.DarkRed, ToolTipText = "Stop All Playback" };
-        btnStop.Click += (s, e) =>
+        ToolStripButton OpsBtn(string text, string tip, Color fg, Action action)
         {
-            AudioEngine.Instance.Stop();
-            AudioEngine.Instance.Stop(AudioDeviceType.Preview);
-        };
+            var b = new ToolStripButton(text)
+            {
+                DisplayStyle = ToolStripItemDisplayStyle.Text,
+                ToolTipText = tip,
+                ForeColor = fg,
+                Margin = new Padding(1, 0, 1, 0)
+            };
+            b.Click += (s, e) => action();
+            return b;
+        }
 
-        var btnStream = new ToolStripButton("📡 STREAM") { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = "Web Streaming" };
-        btnStream.Click += (s, e) => OpenStreaming();
+        var stopColor = Color.FromArgb(255, 100, 100);
+        var stdColor  = Color.FromArgb(220, 210, 200);
 
-        var btnAbout = new ToolStripButton("About") { DisplayStyle = ToolStripItemDisplayStyle.Text };
-        btnAbout.Click += ShowAbout;
-
-        bar.Items.AddRange(new ToolStripItem[] { btnStudio, btnLibrary, btnSchedule, new ToolStripSeparator(), btnStop, btnStream, new ToolStripSeparator(), btnAbout });
-        Controls.Add(bar);
+        opsBar.Items.AddRange(new ToolStripItem[]
+        {
+            OpsBtn("■ STOP ALL", "Stop all playback immediately",
+                stopColor, () => { AudioEngine.Instance.Stop(); AudioEngine.Instance.Stop(AudioDeviceType.Preview); }),
+            new ToolStripSeparator(),
+            OpsBtn("📡 Streaming…",  "Web streaming settings",  stdColor, OpenStreaming),
+            OpsBtn("⚙ Settings…",   "Application settings",    stdColor, OpenSettings),
+            new ToolStripSeparator(),
+            OpsBtn("ℹ About",        "About GoonNet",           stdColor, ShowAbout),
+        });
+        Controls.Add(opsBar);
     }
 
     private void BuildStatusStrip()
@@ -281,7 +320,8 @@ public class MainForm : Form
         f.Show();
     }
 
-    private void ShowAbout(object? sender, EventArgs e)
+    private void ShowAbout(object? sender, EventArgs e) => ShowAbout();
+    private void ShowAbout()
     {
         MessageBox.Show(
             "GoonNet Radio Automation System\n\nVersion 1.0\n\nA classic Windows 98-style radio automation system.\n\nBuilt with C# and NAudio.",

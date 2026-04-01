@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using NAudio.Lame;
@@ -28,6 +29,8 @@ public sealed class StreamManager : IDisposable
     // ── State ─────────────────────────────────────────────────────────────────
     public bool IsStreaming { get; private set; }
     public int ListenerCount => _broadcast.ClientCount;
+    /// <summary>Whether the stream is bound to all interfaces (true) or only localhost (false).</summary>
+    public bool IsNetworkWide { get; private set; }
 
     // ── Events ────────────────────────────────────────────────────────────────
     public event EventHandler<StreamClientEventArgs>? ClientConnected;
@@ -43,9 +46,13 @@ public sealed class StreamManager : IDisposable
     private LameMP3FileWriter? _encoder;
     private WaveFormat? _encoderFormat;
     private readonly BlockingCollection<(float[] samples, int count, WaveFormat format)> _queue
-        = new(boundedCapacity: 80);
+        = new(boundedCapacity: 160);
     private SampleAggregator? _currentAggregator;
     private bool _disposed;
+
+    // Silence generation: keep encoder alive even when no audio is playing
+    private static readonly WaveFormat _defaultFormat = new WaveFormat(44100, 2);
+    private WaveFormat? _lastSeenFormat;
 
     private StreamManager()
     {
@@ -69,10 +76,22 @@ public sealed class StreamManager : IDisposable
 
     private void OnStreamSamples(object? sender, StreamSamplesEventArgs e)
     {
-        if (!IsStreaming || _broadcast.ClientCount == 0) return;
+        if (!IsStreaming) return;
+        _lastSeenFormat = e.WaveFormat;
+        if (_broadcast.ClientCount == 0) return;
         var copy = new float[e.Count];
         Array.Copy(e.Samples, copy, e.Count);
         _queue.TryAdd((copy, e.Count, e.WaveFormat));
+    }
+
+    /// <summary>Injects microphone samples directly into the stream (for live announce/talkover).</summary>
+    public void InjectMicSamples(float[] samples, int count, WaveFormat format)
+    {
+        if (!IsStreaming || _broadcast.ClientCount == 0) return;
+        _lastSeenFormat = format;
+        var copy = new float[count];
+        Array.Copy(samples, copy, count);
+        _queue.TryAdd((copy, count, format));
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -82,14 +101,36 @@ public sealed class StreamManager : IDisposable
         if (IsStreaming) return;
         _cts = new CancellationTokenSource();
 
-        _listener = CreateListener();
-        try { _listener.Start(); }
-        catch (Exception ex)
+        // Try binding to all interfaces first (allows LAN access); fall back to localhost.
+        // Note: http://+ requires admin rights on Windows without prior URL reservation.
+        bool networkWide = false;
+        HttpListener? listener = null;
+        try
         {
-            StatusChanged?.Invoke(this, $"Failed to start stream: {ex.Message}");
-            return;
+            var hl = new HttpListener();
+            hl.Prefixes.Add($"http://+:{Port}/");
+            hl.Start();
+            listener = hl;
+            networkWide = true;
+        }
+        catch
+        {
+            try
+            {
+                var hl = new HttpListener();
+                hl.Prefixes.Add($"http://localhost:{Port}/");
+                hl.Start();
+                listener = hl;
+            }
+            catch (Exception ex)
+            {
+                StatusChanged?.Invoke(this, $"Failed to start stream: {ex.Message}");
+                return;
+            }
         }
 
+        _listener = listener;
+        IsNetworkWide = networkWide;
         IsStreaming = true;
 
         _listenThread = new Thread(ListenLoop) { IsBackground = true, Name = "StreamListen" };
@@ -98,7 +139,9 @@ public sealed class StreamManager : IDisposable
         _encodeThread = new Thread(EncodeLoop) { IsBackground = true, Name = "StreamEncode" };
         _encodeThread.Start();
 
-        StatusChanged?.Invoke(this, $"Streaming on http://localhost:{Port}/stream");
+        string addr = networkWide ? GetLocalIpAddress() : "localhost";
+        StatusChanged?.Invoke(this, $"Streaming on http://{addr}:{Port}/stream" +
+            (networkWide ? $"  (also http://localhost:{Port}/stream)" : ""));
     }
 
     public void Stop()
@@ -114,24 +157,19 @@ public sealed class StreamManager : IDisposable
         StatusChanged?.Invoke(this, "Stream stopped");
     }
 
-    // ── Listener thread ───────────────────────────────────────────────────────
-
-    private HttpListener CreateListener()
+    /// <summary>Returns the machine's best local IPv4 address for LAN access.</summary>
+    public static string GetLocalIpAddress()
     {
-        // Try network-wide prefix first (requires admin on Windows); fall back to localhost only
         try
         {
-            var hl = new HttpListener();
-            hl.Prefixes.Add($"http://+:{Port}/");
-            return hl;
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect("8.8.8.8", 65530);
+            return (socket.LocalEndPoint as IPEndPoint)?.Address.ToString() ?? "localhost";
         }
-        catch (HttpListenerException)
-        {
-            var hl = new HttpListener();
-            hl.Prefixes.Add($"http://localhost:{Port}/");
-            return hl;
-        }
+        catch { return "localhost"; }
     }
+
+    // ── Listener thread ───────────────────────────────────────────────────────
 
     private void ListenLoop()
     {
@@ -167,6 +205,8 @@ public sealed class StreamManager : IDisposable
             ctx.Response.ContentType = "audio/mpeg";
             ctx.Response.Headers["icy-name"] = StationName;
             ctx.Response.Headers["icy-br"] = BitRate.ToString();
+            ctx.Response.Headers["icy-metaint"] = "0";
+            ctx.Response.Headers["Cache-Control"] = "no-cache, no-store";
             ctx.Response.Headers["Connection"] = "close";
             ctx.Response.SendChunked = false;
 
@@ -192,20 +232,60 @@ public sealed class StreamManager : IDisposable
     {
         try
         {
-            var html = $@"<!DOCTYPE html><html>
-<head><meta charset='utf-8'><title>{StationName}</title>
-<style>body{{font-family:sans-serif;background:#111;color:#eee;padding:2em;}}
-a{{color:#4cf;}} h1{{color:#4f4;}}</style></head>
+            string host = ctx.Request.UserHostName ?? $"localhost:{Port}";
+            string streamUrl = $"http://{host}/stream";
+            string localIp = GetLocalIpAddress();
+            string lanUrl = IsNetworkWide ? $"http://{localIp}:{Port}/stream" : streamUrl;
+
+            var html = $@"<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <title>{StationName}</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; padding: 2em; }}
+    h1 {{ color: #00d4ff; margin-bottom: 0.3em; font-size: 2em; }}
+    .subtitle {{ color: #aaa; margin-bottom: 1.5em; }}
+    .card {{ background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 1.2em; margin-bottom: 1em; }}
+    .card h2 {{ color: #e94560; margin-bottom: 0.6em; font-size: 1em; text-transform: uppercase; letter-spacing: 1px; }}
+    a {{ color: #00d4ff; }}
+    .player {{ width: 100%; margin-top: 1em; border-radius: 4px; }}
+    .badge {{ display: inline-block; background: #0f3460; padding: 0.2em 0.6em; border-radius: 3px; font-size: 0.85em; margin: 0.2em; }}
+    .tip {{ color: #aaa; font-size: 0.85em; margin-top: 0.6em; }}
+    .url {{ font-family: monospace; background: #0a0a1a; padding: 0.3em 0.6em; border-radius: 3px; word-break: break-all; }}
+    .green {{ color: #00ff88; }}
+  </style>
+</head>
 <body>
-<h1>📻 {StationName}</h1>
-<p><strong>Stream URL:</strong>
-<a href='http://{ctx.Request.UserHostName}:{Port}/stream'>
-http://{ctx.Request.UserHostName}:{Port}/stream</a></p>
-<p><strong>Listeners:</strong> {_broadcast.ClientCount}</p>
-<p><strong>Bitrate:</strong> {BitRate} kbps | <strong>Format:</strong> MP3</p>
-<p>Open the stream URL in your browser, VLC, foobar2000, or any internet radio player.</p>
-<audio controls autoplay src='/stream' style='width:100%;margin-top:1em'></audio>
-</body></html>";
+  <h1>📻 {StationName}</h1>
+  <p class='subtitle'>GoonNet Radio Automation &mdash; Live Stream</p>
+
+  <div class='card'>
+    <h2>🎧 Listen Now</h2>
+    <audio class='player' controls autoplay preload='none'>
+      <source src='/stream' type='audio/mpeg'>
+      Your browser does not support audio streaming.
+    </audio>
+    <p class='tip'>If the player above doesn't work, open the stream URL directly in VLC or another media player.</p>
+  </div>
+
+  <div class='card'>
+    <h2>📡 Stream URLs</h2>
+    <p>Local: <span class='url'><a href='{streamUrl}'>{streamUrl}</a></span></p>
+    {(IsNetworkWide && lanUrl != streamUrl ? $"<p style='margin-top:0.5em'>LAN: <span class='url'><a href='{lanUrl}'>{lanUrl}</a></span></p>" : "")}
+    <p class='tip'>Add the stream URL to VLC (Media → Open Network Stream) or any internet radio app.</p>
+  </div>
+
+  <div class='card'>
+    <h2>ℹ️ Stream Info</h2>
+    <span class='badge'>🎵 MP3</span>
+    <span class='badge'>📶 {BitRate} kbps</span>
+    <span class='badge green'>👥 {_broadcast.ClientCount} listener{(_broadcast.ClientCount == 1 ? "" : "s")}</span>
+  </div>
+</body>
+</html>";
             var bytes = Encoding.UTF8.GetBytes(html);
             ctx.Response.ContentType = "text/html; charset=utf-8";
             ctx.Response.ContentLength64 = bytes.Length;
@@ -226,10 +306,34 @@ http://{ctx.Request.UserHostName}:{Port}/stream</a></p>
         {
             try
             {
-                if (!_queue.TryTake(out var item, 100, _cts.Token)) continue;
+                bool hadItem = _queue.TryTake(out var item, 100, _cts.Token);
+
+                if (!hadItem)
+                {
+                    // No audio data — send silence to keep connected clients alive and
+                    // to stop the browser audio element from stalling.
+                    if (_broadcast.ClientCount > 0)
+                    {
+                        var fmt = _lastSeenFormat ?? _defaultFormat;
+                        EnsureEncoder(fmt);
+                        if (_encoder != null)
+                        {
+                            // Generate ~100 ms of PCM-16 silence (all zeros) to keep
+                            // connected clients alive and stop browser players from stalling.
+                            const int silenceFrameMs = 100;
+                            int silenceBytes = (fmt.SampleRate * fmt.Channels * silenceFrameMs / 1000) * 2;
+                            var silence = new byte[silenceBytes]; // all zeros = silence
+                            try { _encoder.Write(silence, 0, silence.Length); }
+                            catch { _encoder?.Dispose(); _encoder = null; }
+                        }
+                    }
+                    continue;
+                }
+
                 if (_broadcast.ClientCount == 0) continue;
 
                 var (samples, count, format) = item;
+                _lastSeenFormat = format;
                 EnsureEncoder(format);
                 if (_encoder == null) continue;
 

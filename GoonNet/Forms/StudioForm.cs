@@ -56,6 +56,22 @@ public class StudioForm : Form
     private Label _lblStreamStatus = null!;
     private Button _btnStreamSettings = null!;
 
+    // Studio Tools bar (mic + transition)
+    private Panel _studioToolsBar = null!;
+    // -- Mic talkover
+    private Button _btnTalkover = null!;
+    private ProgressBar _micLevelBar = null!;
+    private TrackBar _duckingSlider = null!;
+    private ComboBox _cboMicDevice = null!;
+    // -- Transition sounds
+    private TextBox _txtTransitionSound = null!;
+    private NumericUpDown _nudFadeSecs = null!;
+    private Button _btnFadeAndNext = null!;
+
+    // Transition playback state
+    private bool _playingTransition;
+    private MusicTrack? _transitionTrack;
+
     private System.Windows.Forms.Timer _clockTimer = null!;
 
     // SampleAggregator subscription tracking
@@ -268,7 +284,7 @@ public class StudioForm : Form
         };
         _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(380, 14), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         _btnPreviewPlay = new Button { Text = "▶", Location = new Point(6, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
-        _btnPreviewPlay.Click += (s, e) => { /* Preview play requires a track queued via Load Next */ };
+        _btnPreviewPlay.Click += BtnPreviewPlay_Click;
         _btnPreviewStop = new Button { Text = "■", Location = new Point(46, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
         _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
         var lblPreviewVol = new Label { Text = "Vol:", Location = new Point(90, 40), Size = new Size(28, 16) };
@@ -318,13 +334,20 @@ public class StudioForm : Form
         streamBar.Controls.AddRange(new Control[] { _lblStreamStatus, _btnStreamSettings });
 
         // ══════════════════════════════════════════════════════════════════════
+        // STUDIO TOOLS BAR  (transition sounds + microphone talkover)
+        // ══════════════════════════════════════════════════════════════════════
+        _studioToolsBar = BuildStudioToolsBar();
+        _studioToolsBar.Location = new Point(0, 224);
+        _studioToolsBar.SizeChanged += (s, e) => _studioToolsBar.Width = ClientSize.Width;
+
+        // ══════════════════════════════════════════════════════════════════════
         // LARGE SPECTRUM ANALYZER
         // ══════════════════════════════════════════════════════════════════════
         var spectrumPanel = new GroupBox
         {
             Text = "SPECTRUM ANALYZER",
-            Location = new Point(0, 224),
-            Height = 210,
+            Location = new Point(0, 304),   // 224 + 80 toolsBar height
+            Height = 180,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             BackColor = Color.Black,
@@ -338,7 +361,6 @@ public class StudioForm : Form
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         spectrumPanel.Controls.Add(_spectrum);
-        // Resize spectrum to fill the group box
         spectrumPanel.SizeChanged += (s, e) =>
         {
             _spectrum.Size = new Size(spectrumPanel.ClientSize.Width - 8, spectrumPanel.ClientSize.Height - 20);
@@ -350,7 +372,7 @@ public class StudioForm : Form
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Location = new Point(0, 434),
+            Location = new Point(0, 484),   // 304 + 180 = 484
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
@@ -375,25 +397,194 @@ public class StudioForm : Form
 
         playlistPanel.Controls.Add(_lvPlaylist);
 
-        // Wire up SizeChanged to keep playlist and its listview filling the space
+        // Wire up SizeChanged to keep all panels filling the space
         SizeChanged += (s, e) =>
         {
             topPanel.Width = ClientSize.Width;
             streamBar.Width = ClientSize.Width;
+            _studioToolsBar.Width = ClientSize.Width;
             spectrumPanel.Width = ClientSize.Width;
             rightPanel.Width = ClientSize.Width - 614;
 
-            playlistPanel.Location = new Point(0, 434);
-            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 434);
+            playlistPanel.Location = new Point(0, 484);
+            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 484);
             _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
 
             _btnStreamSettings.Location = new Point(streamBar.Width - 130, 3);
         };
 
-        Controls.AddRange(new Control[] { topPanel, streamBar, spectrumPanel, playlistPanel });
+        Controls.AddRange(new Control[] { topPanel, streamBar, _studioToolsBar, spectrumPanel, playlistPanel });
 
         // Fire SizeChanged once to initialize sizes
         OnSizeChanged(EventArgs.Empty);
+    }
+
+    private Panel BuildStudioToolsBar()
+    {
+        var bar = new Panel
+        {
+            Height = 80,
+            BackColor = Color.FromArgb(25, 28, 38),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        // ── LEFT: Transition sound controls ────────────────────────────────
+        var transGroup = new GroupBox
+        {
+            Text = "TRANSITION SOUND",
+            Location = new Point(4, 4),
+            Size = new Size(550, 72),
+            Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold),
+            ForeColor = Color.FromArgb(160, 200, 255),
+            BackColor = Color.FromArgb(25, 28, 38)
+        };
+
+        var lblFade = new Label { Text = "Fade:", Location = new Point(8, 22), Size = new Size(36, 16), ForeColor = Color.Silver };
+        _nudFadeSecs = new NumericUpDown
+        {
+            Location = new Point(46, 20),
+            Size = new Size(52, 20),
+            Minimum = 1,
+            Maximum = 30,
+            Value = 5,
+            DecimalPlaces = 0
+        };
+        var lblSecs = new Label { Text = "sec", Location = new Point(101, 22), Size = new Size(26, 16), ForeColor = Color.Silver };
+
+        var lblSnd = new Label { Text = "Stinger:", Location = new Point(134, 22), Size = new Size(46, 16), ForeColor = Color.Silver };
+        _txtTransitionSound = new TextBox
+        {
+            Location = new Point(182, 19),
+            Size = new Size(220, 20),
+            BackColor = Color.FromArgb(40, 45, 60),
+            ForeColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle,
+            PlaceholderText = "(optional .mp3/.wav stinger)"
+        };
+        var btnBrowse = new Button
+        {
+            Text = "📂",
+            Location = new Point(406, 18),
+            Size = new Size(30, 22),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.Silver,
+            BackColor = Color.FromArgb(50, 55, 70)
+        };
+        btnBrowse.FlatAppearance.BorderColor = Color.FromArgb(80, 90, 110);
+        btnBrowse.Click += BtnBrowseTransition_Click;
+
+        _btnFadeAndNext = new Button
+        {
+            Text = "FADE & NEXT ▶",
+            Location = new Point(442, 16),
+            Size = new Size(102, 26),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
+            ForeColor = Color.FromArgb(255, 220, 100),
+            BackColor = Color.FromArgb(80, 60, 10)
+        };
+        _btnFadeAndNext.FlatAppearance.BorderColor = Color.FromArgb(180, 140, 40);
+        _btnFadeAndNext.Click += BtnFadeAndNext_Click;
+
+        var lblTransTip = new Label
+        {
+            Text = "Fades out current track and (optionally) plays a stinger before auto-advancing.",
+            Location = new Point(8, 48),
+            Size = new Size(530, 18),
+            ForeColor = Color.FromArgb(120, 130, 150),
+            Font = new Font("Microsoft Sans Serif", 7f)
+        };
+
+        transGroup.Controls.AddRange(new Control[] { lblFade, _nudFadeSecs, lblSecs, lblSnd, _txtTransitionSound, btnBrowse, _btnFadeAndNext, lblTransTip });
+
+        // ── RIGHT: Microphone talkover controls ────────────────────────────
+        var micGroup = new GroupBox
+        {
+            Text = "🎤 MIC TALKOVER",
+            Location = new Point(558, 4),
+            Size = new Size(440, 72),
+            Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold),
+            ForeColor = Color.FromArgb(255, 180, 180),
+            BackColor = Color.FromArgb(25, 28, 38),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        bar.SizeChanged += (s, e) => micGroup.Width = bar.Width - 562;
+
+        var lblDev = new Label { Text = "Device:", Location = new Point(8, 20), Size = new Size(45, 16), ForeColor = Color.Silver };
+        _cboMicDevice = new ComboBox
+        {
+            Location = new Point(56, 18),
+            Size = new Size(200, 20),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = Color.FromArgb(40, 45, 60),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Popup
+        };
+        PopulateMicDevices();
+
+        var lblDuck = new Label { Text = "Duck:", Location = new Point(262, 20), Size = new Size(36, 16), ForeColor = Color.Silver };
+        _duckingSlider = new TrackBar
+        {
+            Location = new Point(300, 14),
+            Size = new Size(80, 28),
+            Minimum = 0,
+            Maximum = 100,
+            Value = 25,
+            TickFrequency = 25,
+            TickStyle = TickStyle.None
+        };
+        var lblDuckVal = new Label { Text = "25%", Location = new Point(384, 20), Size = new Size(32, 16), ForeColor = Color.Silver };
+        _duckingSlider.ValueChanged += (s, e) =>
+        {
+            lblDuckVal.Text = _duckingSlider.Value + "%";
+            MicrophoneManager.Instance.DuckLevel = _duckingSlider.Value / 100f;
+        };
+
+        _btnTalkover = new Button
+        {
+            Text = "⏵ TALKOVER",
+            Location = new Point(8, 42),
+            Size = new Size(250, 24),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = Color.FromArgb(60, 30, 30)
+        };
+        _btnTalkover.FlatAppearance.BorderColor = Color.FromArgb(150, 60, 60);
+        _btnTalkover.Click += BtnTalkover_Click;
+
+        _micLevelBar = new ProgressBar
+        {
+            Location = new Point(264, 42),
+            Size = new Size(160, 18),
+            Minimum = 0,
+            Maximum = 100,
+            Style = ProgressBarStyle.Continuous,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        bar.SizeChanged += (s, e) => _micLevelBar.Width = Math.Max(80, micGroup.Width - 270);
+
+        micGroup.Controls.AddRange(new Control[] { lblDev, _cboMicDevice, lblDuck, _duckingSlider, lblDuckVal, _btnTalkover, _micLevelBar });
+
+        bar.Controls.AddRange(new Control[] { transGroup, micGroup });
+        return bar;
+    }
+
+    private void PopulateMicDevices()
+    {
+        _cboMicDevice.Items.Clear();
+        int count = MicrophoneManager.DeviceCount;
+        if (count == 0)
+        {
+            _cboMicDevice.Items.Add("(no microphone found)");
+            // Leave SelectedIndex at -1 so the placeholder is not mistaken for a valid device
+        }
+        else
+        {
+            for (int i = 0; i < count; i++)
+                _cboMicDevice.Items.Add(MicrophoneManager.GetDeviceName(i));
+            _cboMicDevice.SelectedIndex = 0;
+        }
     }
 
     private void OpenStreamingForm()
@@ -444,7 +635,37 @@ public class StudioForm : Form
                 _lblElapsed.Text = "0:00";
                 _lblRemaining.Text = "-0:00";
                 MarkCurrentPlayed();
-                if (_autoPlay) PlayNext();
+
+                if (_playingTransition)
+                {
+                    // The transition stinger just finished — advance playlist normally
+                    _playingTransition = false;
+                    _transitionTrack = null;
+                    if (_autoPlay) PlayNext();
+                }
+                else if (_transitionTrack != null)
+                {
+                    // Current track faded out; now play the stinger
+                    var stinger = _transitionTrack;
+                    _transitionTrack = null;
+                    _playingTransition = true;
+                    if (File.Exists(stinger.FullPath))
+                    {
+                        AudioEngine.Instance.PlayTrack(stinger);
+                        _lblArtist.Text = "🎵 " + stinger.Artist;
+                        _lblTitle.Text = stinger.Title;
+                    }
+                    else
+                    {
+                        // Stinger file missing — skip straight to next
+                        _playingTransition = false;
+                        if (_autoPlay) PlayNext();
+                    }
+                }
+                else
+                {
+                    if (_autoPlay) PlayNext();
+                }
             });
         };
 
@@ -474,6 +695,13 @@ public class StudioForm : Form
         {
             if (!IsHandleCreated) return;
             BeginInvoke(() => UpdateStreamStatusBar());
+        };
+
+        // Mic level updates
+        MicrophoneManager.Instance.LevelChanged += (s, level) =>
+        {
+            if (!IsHandleCreated) return;
+            BeginInvoke(() => _micLevelBar.Value = (int)(level * 100));
         };
     }
 
@@ -693,6 +921,102 @@ public class StudioForm : Form
         }
     }
 
+    private void BtnPreviewPlay_Click(object? sender, EventArgs e)
+    {
+        // Play the "next" track on the preview device so the operator can listen before airing
+        if (_currentPlaylist == null) return;
+        int nextIdx = _currentIndex + 1;
+        if (nextIdx >= _currentPlaylist.Items.Count) return;
+        var item = _currentPlaylist.Items[nextIdx];
+        var track = MusicDb?.GetById(item.TrackId);
+        if (track == null || !File.Exists(track.FullPath))
+        {
+            MessageBox.Show("Next track file not found.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        AudioEngine.Instance.PlayTrack(track, AudioDeviceType.Preview);
+        _lblPreviewTrack.Text = $"Preview: {track.Artist} — {track.Title}";
+    }
+
+    private void BtnTalkover_Click(object? sender, EventArgs e)
+    {
+        if (MicrophoneManager.Instance.IsActive)
+        {
+            MicrophoneManager.Instance.StopTalkover();
+            _btnTalkover.Text = "⏵ TALKOVER";
+            _btnTalkover.BackColor = Color.FromArgb(60, 30, 30);
+            _btnTalkover.ForeColor = Color.White;
+            _micLevelBar.Value = 0;
+        }
+        else
+        {
+            MicrophoneManager.Instance.DeviceNumber = _cboMicDevice.SelectedIndex >= 0 ? _cboMicDevice.SelectedIndex : 0;
+            MicrophoneManager.Instance.DuckLevel = _duckingSlider.Value / 100f;
+            try
+            {
+                MicrophoneManager.Instance.StartTalkover();
+                _btnTalkover.Text = "⏹ STOP TALKOVER";
+                _btnTalkover.BackColor = Color.FromArgb(180, 30, 30);
+                _btnTalkover.ForeColor = Color.Yellow;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not start microphone:\n{ex.Message}", "GoonNet",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+    }
+
+    private void BtnBrowseTransition_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new OpenFileDialog
+        {
+            Title = "Select Transition / Stinger Sound",
+            Filter = "Audio Files|*.mp3;*.wav;*.ogg;*.aac;*.flac|All Files|*.*",
+            CheckFileExists = true
+        };
+        if (dlg.ShowDialog() == DialogResult.OK)
+            _txtTransitionSound.Text = dlg.FileName;
+    }
+
+    private void BtnFadeAndNext_Click(object? sender, EventArgs e)
+    {
+        if (!AudioEngine.Instance.IsPlaying)
+        {
+            // Not playing — just advance
+            PlayNext();
+            return;
+        }
+
+        var fadeDuration = TimeSpan.FromSeconds((double)_nudFadeSecs.Value);
+        string stingerPath = _txtTransitionSound.Text.Trim();
+
+        if (!string.IsNullOrEmpty(stingerPath) && File.Exists(stingerPath))
+        {
+            // Schedule the stinger to play after the fade
+            _transitionTrack = new MusicTrack
+            {
+                Artist = "Transition",
+                Title = Path.GetFileNameWithoutExtension(stingerPath),
+                FileName = Path.GetFileName(stingerPath),
+                Location = Path.GetDirectoryName(stingerPath) ?? string.Empty
+            };
+            MarkCurrentPlayed();
+            AudioEngine.Instance.FadeOut(AudioDeviceType.Main, fadeDuration);
+            // TrackEnded will fire → plays stinger → TrackEnded fires again → PlayNext()
+        }
+        else
+        {
+            // No stinger — just fade out and advance
+            MarkCurrentPlayed();
+            AudioEngine.Instance.FadeOut(AudioDeviceType.Main, fadeDuration, () =>
+            {
+                if (IsHandleCreated)
+                    BeginInvoke(() => PlayNext());
+            });
+        }
+    }
+
     private void LvPlaylist_DoubleClick(object? sender, EventArgs e)
     {
         if (_lvPlaylist.SelectedItems.Count == 0) return;
@@ -713,6 +1037,10 @@ public class StudioForm : Form
     {
         _clockTimer.Stop();
 
+        // Stop mic talkover if active
+        if (MicrophoneManager.Instance.IsActive)
+            MicrophoneManager.Instance.StopTalkover();
+
         // Safely unsubscribe
         AudioEngine.Instance.MainSampleAggregatorChanged -= OnMainAggregatorChanged;
         if (_currentAggregator != null)
@@ -724,4 +1052,3 @@ public class StudioForm : Form
         base.OnFormClosed(e);
     }
 }
-
