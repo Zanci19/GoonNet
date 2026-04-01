@@ -9,7 +9,6 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>GoonNet</AssemblyName>
     <RootNamespace>GoonNet</RootNamespace>
-    <ApplicationIcon>Resources\radio.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
