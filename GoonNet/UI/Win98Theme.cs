@@ -15,10 +15,16 @@ public static class Win98Theme
     public static readonly Color ExpiredColor = Color.FromArgb(210, 210, 210);
     public static readonly Color RecordingColor = Color.FromArgb(255, 160, 160);
 
-    public static Font ClassicFont => new Font("Microsoft Sans Serif", 8f, FontStyle.Regular);
-    public static Font BoldFont => new Font("Microsoft Sans Serif", 8f, FontStyle.Bold);
-    public static Font LargeFont => new Font("Microsoft Sans Serif", 12f, FontStyle.Bold);
-    public static Font ClockFont => new Font("Microsoft Sans Serif", 18f, FontStyle.Bold);
+    // Cached font instances - shared across the application (do not dispose externally)
+    private static readonly Font _classicFont = new Font("Microsoft Sans Serif", 8f, FontStyle.Regular);
+    private static readonly Font _boldFont = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold);
+    private static readonly Font _largeFont = new Font("Microsoft Sans Serif", 12f, FontStyle.Bold);
+    private static readonly Font _clockFont = new Font("Microsoft Sans Serif", 18f, FontStyle.Bold);
+
+    public static Font ClassicFont => _classicFont;
+    public static Font BoldFont => _boldFont;
+    public static Font LargeFont => _largeFont;
+    public static Font ClockFont => _clockFont;
 
     public static void ApplyTheme(Control control)
     {

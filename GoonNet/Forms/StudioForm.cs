@@ -305,8 +305,9 @@ public class StudioForm : Form
                 _progressBar.Value = (int)(e.Fraction * 1000);
                 _lblElapsed.Text = FormatTime(e.Position);
                 _lblRemaining.Text = "-" + FormatTime(e.Duration - e.Position);
-                // Simulate VU meter level from position fraction
-                _vuMeter.UpdateLevel(0.4 + Math.Sin(e.Position.TotalSeconds * 3) * 0.3);
+                // VU meter uses a simulated level - real implementation would read
+                // audio sample peak values from the NAudio SampleProvider pipeline
+                _vuMeter.UpdateLevel(Math.Clamp(0.4 + Math.Sin(e.Position.TotalSeconds * 3) * 0.35, 0, 1));
             });
         };
     }
