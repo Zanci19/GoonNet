@@ -25,6 +25,9 @@ public sealed class AudioEngine : IDisposable
     private bool _previewPaused;
     private bool _disposed;
 
+    // Ducking state (for mic talkover)
+    private float _duckSavedVolume = -1f;
+
     public event EventHandler<TrackEventArgs>? TrackStarted;
     public event EventHandler<TrackEventArgs>? TrackEnded;
     public event EventHandler<PositionEventArgs>? TrackPositionChanged;
@@ -183,12 +186,12 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
-    public void FadeOut(AudioDeviceType device, TimeSpan duration)
+    public void FadeOut(AudioDeviceType device, TimeSpan duration, Action? onComplete = null)
     {
         var vol = device == AudioDeviceType.Main ? _mainVolume : _previewVolume;
         if (vol == null) return;
         var steps = (int)(duration.TotalMilliseconds / 50);
-        if (steps <= 0) { Stop(device); return; }
+        if (steps <= 0) { Stop(device); onComplete?.Invoke(); return; }
         var startVol = vol.Volume;
         var decrement = startVol / steps;
         var stepCount = 0;
@@ -204,6 +207,7 @@ public sealed class AudioEngine : IDisposable
                 Stop(device);
                 if (device == AudioDeviceType.Main) MainVolume = _mainVolumeLevel;
                 else PreviewVolume = _previewVolumeLevel;
+                onComplete?.Invoke();
             }
             else
             {
@@ -246,6 +250,25 @@ public sealed class AudioEngine : IDisposable
     {
         if (_mainReader != null && position < _mainReader.TotalTime)
             _mainReader.CurrentTime = position;
+    }
+
+    /// <summary>Temporarily reduces main volume to <paramref name="level"/> (0–1 fraction of current volume).
+    /// Call <see cref="Unduck"/> to restore.</summary>
+    public void Duck(float level = 0.25f)
+    {
+        if (_duckSavedVolume < 0) _duckSavedVolume = _mainVolumeLevel;
+        MainVolume = _duckSavedVolume * Math.Clamp(level, 0f, 1f);
+    }
+
+    /// <summary>Restores the main volume to the level it was before <see cref="Duck"/> was called.</summary>
+    public void Unduck()
+    {
+        if (_duckSavedVolume >= 0)
+        {
+            _mainVolumeLevel = _duckSavedVolume;
+            MainVolume = _duckSavedVolume;
+            _duckSavedVolume = -1f;
+        }
     }
 
     public void QueueNext(MusicTrack track)

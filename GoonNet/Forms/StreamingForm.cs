@@ -252,9 +252,19 @@ public class StreamingForm : Form
             ? $"Streaming — {StreamManager.Instance.StationName}"
             : "Stream is offline";
         _lblListeners.Text = $"Listeners: {StreamManager.Instance.ListenerCount}";
-        _lnkUrl.Text = on
-            ? $"http://localhost:{StreamManager.Instance.Port}/stream"
-            : "(not streaming)";
+
+        if (on)
+        {
+            string localIp = StreamManager.GetLocalIpAddress();
+            string lanUrl = StreamManager.Instance.IsNetworkWide && localIp != "localhost"
+                ? $"http://{localIp}:{StreamManager.Instance.Port}/stream"
+                : $"http://localhost:{StreamManager.Instance.Port}/stream";
+            _lnkUrl.Text = lanUrl;
+        }
+        else
+        {
+            _lnkUrl.Text = "(not streaming)";
+        }
 
         _btnStartStop.Text = on ? "■ STOP STREAMING" : "▶ START STREAMING";
         _btnStartStop.BackColor = on ? Color.FromArgb(255, 200, 200) : Color.FromArgb(200, 255, 200);
