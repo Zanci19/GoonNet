@@ -48,7 +48,9 @@ public class EmailManager : IDisposable
     public List<string> CheckForNewEmails()
     {
         // Placeholder - real POP3/IMAP would require an external library
-        return new List<string> { "Email checking not implemented - requires POP3/IMAP library" };
+        var placeholder = new List<string> { "Email checking not implemented - requires POP3/IMAP library" };
+        EmailReceived?.Invoke(this, new EmailEventArgs("", "Info", placeholder[0]));
+        return placeholder;
     }
 
     public void StartPeriodicCheck()

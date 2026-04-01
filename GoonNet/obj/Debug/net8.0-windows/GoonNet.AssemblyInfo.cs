@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GoonNet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4ce7ea94fd92e6855496c47acd39e90a4f86bcde")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+be3cf1195627f6ee52ace8fe6e87ca54132bc791")]
 [assembly: System.Reflection.AssemblyProductAttribute("GoonNet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GoonNet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
