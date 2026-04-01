@@ -1,0 +1,350 @@
+SPECIFIKACIJA PROGRAMSKEGA SISTEMA ZA AVTOMATIZACIJO ZVOČNE PRODUKCIJE
+
+1. NAMEN SISTEMA
+
+Programski sistem mora omogočati avtomatizirano upravljanje, razporejanje, obdelavo in predvajanje zvočnih vsebin. Namenjen mora biti uporabi v okoljih, kjer je potrebno neprekinjeno predvajanje (npr. radijski sistemi, studii, produkcija).
+
+Sistem mora delovati stabilno, predvidljivo in omogočati visoko stopnjo avtomatizacije.
+
+2. OSNOVNA ARHITEKTURA
+
+Sistem mora biti sestavljen iz več logičnih modulov:
+	•	modul za upravljanje baz podatkov
+	•	modul za predvajanje (studio modul)
+	•	modul za snemanje
+	•	modul za generiranje playlist
+	•	modul za upravljanje datotek
+	•	modul za komunikacijo
+
+Moduli morajo delovati povezano, vendar dovolj ločeno, da omogočajo razširljivost.
+
+3. PODATKOVNI SISTEM
+
+3.1 Splošne zahteve
+
+Podatki morajo biti shranjeni v strukturiranih bazah. Ob vsakem dostopu mora biti baza v celoti naložena v pomnilnik.
+
+Centraliziran sistem (SQL) ni zahtevan.
+
+Sočasno urejanje ni zagotovljeno, zato mora biti omogočeno:
+	•	zaklepanje baz
+	•	delo v read-only načinu
+
+3.2 Vrste baz podatkov
+
+Podprte morajo biti naslednje baze:
+	•	glasba
+	•	jingli
+	•	oglasi
+	•	ozadja
+	•	bloki
+	•	dogodki
+	•	poročila v živo
+	•	prispevki
+	•	playlisti
+	•	sekvence playlist
+
+3.3 Struktura zapisov – glasba
+
+Vsak zapis mora vsebovati:
+
+Opisne podatke:
+	•	izvajalec
+	•	naslov
+	•	žanr
+	•	tip
+	•	komentarji
+	•	dodatne oznake
+
+Numerične vrednosti:
+	•	ocena (0–100)
+	•	atributi (več polj)
+	•	BPM
+
+Tehnični podatki:
+	•	ime datoteke
+	•	lokacija
+	•	format
+	•	dolžina
+	•	bitrate
+
+Parametri predvajanja:
+	•	začetek
+	•	konec
+	•	fade-in
+	•	fade-out
+	•	intro (začetek vokala)
+	•	voice-out (konec vokala)
+	•	hot-start
+	•	mix-in
+	•	loop-start / loop-end
+	•	refrain-start / refrain-end
+
+3.4 Dodatne oznake
+
+Podprte morajo biti oznake:
+	•	novo izdana vsebina
+	•	promovirana vsebina
+	•	podvojena vsebina
+	•	arhivirana vsebina
+
+4. DOGODKI
+
+Dogodki morajo predstavljati osnovno enoto predvajanja.
+
+4.1 Tipi dogodkov
+	•	glasba
+	•	jingel
+	•	oglas
+	•	blok
+	•	govor
+	•	pavza
+	•	datoteka
+	•	ukaz
+	•	playlista
+	•	poročilo
+	•	novica
+
+4.2 Časovne omejitve
+
+Dogodki morajo imeti:
+	•	začetni datum
+	•	končni datum
+	•	dneve v tednu
+
+Če niso določeni, mora veljati:
+	•	brez začetka → vedno aktivno do konca
+	•	brez konca → neomejeno
+	•	brez dni → vsak dan
+
+4.3 Posebna pravila
+
+Podprta morajo biti:
+	•	pre-event (izvede se le, če sledi naslednji)
+	•	mid-event (izvede se med drugimi dogodki)
+	•	nikoli ne odstrani
+
+5. BLOKI
+
+5.1 Vrste blokov
+	•	časovno določeni
+	•	posebni (vgnezdeni)
+
+5.2 Funkcionalnost
+
+Bloki morajo:
+	•	omogočati avtomatsko razporejanje
+	•	imeti točen čas predvajanja
+	•	omogočati mehko prilagoditev (soft fade)
+
+5.3 Oglasi
+
+Podprto mora biti:
+	•	pred-oglasni blok
+	•	med-oglasni blok
+	•	po-oglasni blok
+
+6. PLAYLIST SISTEM
+
+6.1 Ročne playliste
+
+Morajo omogočati:
+	•	vstavljanje dogodkov
+	•	nadzor nad vrstnim redom
+	•	brisanje po pravilih (npr. govor)
+	•	mešanje govora z glasbo
+
+6.2 Avtomatske playliste
+
+Morajo omogočati:
+	•	generiranje na podlagi pravil
+	•	časovno razporejanje
+	•	uporabo algoritmov izbire
+
+6.3 Algoritmi izbire
+
+Podprto mora biti:
+	•	več algoritmov
+	•	dnevni in nočni način
+	•	ponavljanje dnevnih vsebin ponoči
+
+6.4 Samodejno vstavljanje
+
+Sistem mora:
+	•	preverjati playliste vsako minuto
+	•	vstavljati playliste pred časom
+	•	podpirati različne formate imen
+
+7. DATOTEČNI SISTEM
+
+7.1 Organizacija
+
+Morajo obstajati mape:
+	•	glasba
+	•	jingli
+	•	oglasi
+	•	ozadja
+	•	govori
+	•	poročila
+	•	novice
+	•	playlisti
+
+7.2 Samodejno razvrščanje
+
+Datoteke morajo biti:
+	•	prepoznane po tipu
+	•	premaknjene v ustrezno mapo
+
+7.3 Omrežje
+
+Sistem mora:
+	•	podpirati več računalnikov
+	•	iskati datoteke lokalno in oddaljeno
+	•	uporabljati deljene diske
+
+8. ZVOČNI SISTEM
+
+8.1 Naprave
+
+Podprti morata biti:
+	•	glavna naprava
+	•	naprava za predposlušanje
+
+8.2 Mešanje
+
+Podprto mora biti:
+	•	mix-in pozicija
+	•	fade
+	•	soft fade
+	•	avtomatski prehodi
+
+8.3 Glasnost
+	•	osnovna vrednost mora biti definirana
+	•	enote morajo biti pretvorljive v dB
+	•	omogočeni morajo biti popravki
+
+9. VIZUALNI SISTEM
+
+9.1 Prikaz
+
+Mora biti prikazano:
+	•	trenutno predvajanje
+	•	naslednji dogodek
+	•	čas
+
+9.2 Barve
+
+Elementi morajo biti označeni:
+	•	prisotni
+	•	manjkajoči
+	•	predvajani
+	•	čakajoči
+	•	potekli
+
+10. GOVOR IN OZADJA
+
+10.1 Govor čez glasbo
+
+Mora biti omogočeno:
+	•	znižanje glasnosti
+	•	mešanje govora
+	•	ponovna normalizacija
+
+10.2 Ozadja
+
+Podprto mora biti:
+	•	začetna glasnost
+	•	decay
+	•	sustain
+	•	release
+
+11. POROČILA V ŽIVO
+
+Sistem mora:
+	•	zaznati nove datoteke
+	•	jih avtomatsko vključiti
+	•	omogočiti jingel in ozadje
+
+12. NASVETI (ADVICES)
+
+Podprto mora biti:
+	•	filtriranje po kategoriji
+	•	časovna veljavnost
+	•	predvajanje po pravilih
+
+13. UPRAVLJANJE DATOTEK
+
+Omogočeno mora biti:
+	•	brisanje
+	•	kopiranje
+	•	premikanje
+	•	zaznavanje neuporabljenih datotek
+
+14. UPORABNIŠKI SISTEM
+
+14.1 Pravice
+
+Podprto mora biti:
+	•	uporabniški računi
+	•	pravice dostopa
+	•	zaklepanje
+
+14.2 Sočasno delo
+	•	baze se nalagajo v pomnilnik
+	•	konflikti niso preprečeni
+	•	omogočeno mora biti opozarjanje
+
+15. AVTOMATIZACIJA
+
+15.1 Samodejne funkcije
+
+Sistem mora:
+	•	brisati stare datoteke
+	•	ustvarjati log
+	•	generirati playliste
+
+15.2 Log
+
+Zabeleženo mora biti:
+	•	izvajalec
+	•	naslov
+	•	datoteka
+
+16. KOMUNIKACIJA
+
+16.1 E-mail
+
+Podprto mora biti:
+	•	pošiljanje
+	•	prejemanje
+	•	preverjanje v intervalih
+
+16.2 Oddaljen dostop
+
+Mora biti omogočeno:
+	•	upravljanje na daljavo
+	•	telnet povezava
+	•	nadzor sistema
+
+17. SISTEMSKE FUNKCIJE
+
+17.1 Stabilnost
+
+Sistem mora:
+	•	zaznati napake
+	•	omogočiti restart
+	•	podpirati watchdog
+
+17.2 Zmogljivost
+
+Omogočeno mora biti:
+	•	nastavitev prioritete
+	•	optimizacija delovanja
+
+18. ZAKLJUČEK
+
+Program mora biti:
+	•	robusten
+	•	avtomatiziran
+	•	razširljiv
+	•	primeren za neprekinjeno delovanje
