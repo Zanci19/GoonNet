@@ -29,9 +29,13 @@ public sealed class AudioEngine : IDisposable
     public event EventHandler<TrackEventArgs>? TrackEnded;
     public event EventHandler<PositionEventArgs>? TrackPositionChanged;
     public event EventHandler<AudioErrorEventArgs>? Error;
+    public event EventHandler? MainSampleAggregatorChanged;
 
     public MusicTrack? CurrentTrack { get; private set; }
     public MusicTrack? NextTrack { get; private set; }
+
+    /// <summary>The current SampleAggregator inserted in the main playback pipeline. Null when stopped.</summary>
+    public SampleAggregator? MainSampleAggregator { get; private set; }
 
     public bool IsPlaying => _mainPlayer?.PlaybackState == PlaybackState.Playing;
     public bool IsPaused => _mainPaused;
@@ -93,11 +97,13 @@ public sealed class AudioEngine : IDisposable
                 _mainReader = new AudioFileReader(track.FullPath);
                 if (track.Start > TimeSpan.Zero && track.Start < _mainReader.TotalTime)
                     _mainReader.CurrentTime = track.Start;
-                _mainVolume = new VolumeSampleProvider(_mainReader.ToSampleProvider()) { Volume = _mainVolumeLevel };
+                MainSampleAggregator = new SampleAggregator(_mainReader.ToSampleProvider());
+                _mainVolume = new VolumeSampleProvider(MainSampleAggregator) { Volume = _mainVolumeLevel };
                 _mainPlayer = new WaveOutEvent { DesiredLatency = 200 };
                 _mainPlayer.Init(_mainVolume);
                 _mainPlayer.PlaybackStopped += MainPlayer_PlaybackStopped;
                 _mainPlayer.Play();
+                MainSampleAggregatorChanged?.Invoke(this, EventArgs.Empty);
                 _mainPaused = false;
                 TrackStarted?.Invoke(this, new TrackEventArgs(track, device));
             }
@@ -133,7 +139,9 @@ public sealed class AudioEngine : IDisposable
         _mainReader?.Dispose();
         _mainReader = null;
         _mainVolume = null;
+        MainSampleAggregator = null;
         _mainPaused = false;
+        MainSampleAggregatorChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void StopPreview()

@@ -89,6 +89,25 @@
           }
         }
       },
+      "NAudio.Lame/2.1.0": {
+        "type": "package",
+        "dependencies": {
+          "NAudio.Core": "2.1.0"
+        },
+        "compile": {
+          "lib/netstandard2.0/NAudio.Lame.dll": {
+            "related": ".pdb"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/NAudio.Lame.dll": {
+            "related": ".pdb"
+          }
+        },
+        "build": {
+          "build/NAudio.Lame.targets": {}
+        }
+      },
       "NAudio.Midi/2.2.1": {
         "type": "package",
         "dependencies": {
@@ -319,6 +338,23 @@
         "naudio.core.nuspec"
       ]
     },
+    "NAudio.Lame/2.1.0": {
+      "sha512": "Y+FtVgvjT+bNpBFqDiAKcFGelix1UavpX66vLymzWalXOGvY+MsoLNKL6aNGA0INjvBxeI3qd1LlD+bg7Nv2Ww==",
+      "type": "package",
+      "path": "naudio.lame/2.1.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "build/NAudio.Lame.targets",
+        "build/libmp3lame.32.dll",
+        "build/libmp3lame.64.dll",
+        "lib/netstandard2.0/NAudio.Lame.dll",
+        "lib/netstandard2.0/NAudio.Lame.pdb",
+        "naudio.lame.2.1.0.nupkg.sha512",
+        "naudio.lame.nuspec"
+      ]
+    },
     "NAudio.Midi/2.2.1": {
       "sha512": "6r23ylGo5aeP02WFXsPquz0T0hFJWyh+7t++tz19tc3Kr38NHm+Z9j+FiAv+xkH8tZqXJqus9Q8p6u7bidIgbw==",
       "type": "package",
@@ -483,11 +519,12 @@
   },
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
-      "NAudio >= 2.2.1"
+      "NAudio >= 2.2.1",
+      "NAudio.Lame >= 2.1.0"
     ]
   },
   "packageFolders": {
-    "/tmp/codeql-scratch-a1709af54d5f21e3/dbs/csharp/working/packages": {}
+    "/home/runner/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
@@ -495,7 +532,7 @@
       "projectUniqueName": "/home/runner/work/GoonNet/GoonNet/GoonNet/GoonNet.csproj",
       "projectName": "GoonNet",
       "projectPath": "/home/runner/work/GoonNet/GoonNet/GoonNet/GoonNet.csproj",
-      "packagesPath": "/tmp/codeql-scratch-a1709af54d5f21e3/dbs/csharp/working/packages",
+      "packagesPath": "/home/runner/.nuget/packages/",
       "outputPath": "/home/runner/work/GoonNet/GoonNet/GoonNet/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
@@ -532,6 +569,10 @@
           "NAudio": {
             "target": "Package",
             "version": "[2.2.1, )"
+          },
+          "NAudio.Lame": {
+            "target": "Package",
+            "version": "[2.1.0, )"
           }
         },
         "imports": [
@@ -546,18 +587,6 @@
         "assetTargetFallback": true,
         "warn": true,
         "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.25, 8.0.25]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.linux-x64",
-            "version": "[8.0.25, 8.0.25]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.25, 8.0.25]"
-          },
           {
             "name": "Microsoft.WindowsDesktop.App.Ref",
             "version": "[8.0.25, 8.0.25]"

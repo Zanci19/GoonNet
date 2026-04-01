@@ -28,6 +28,7 @@ public class MusicLibraryForm : Form
     {
         Text = "Music Library";
         Size = new Size(800, 520);
+        MinimumSize = new Size(600, 400);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
