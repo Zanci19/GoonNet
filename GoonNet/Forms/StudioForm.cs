@@ -49,7 +49,17 @@ public class StudioForm : Form
     private Button _btnPreviewStop = null!;
     private TrackBar _previewVolumeSlider = null!;
 
+    // Spectrum analyzer
+    private SpectrumAnalyzer _spectrum = null!;
+
+    // Streaming status bar
+    private Label _lblStreamStatus = null!;
+    private Button _btnStreamSettings = null!;
+
     private System.Windows.Forms.Timer _clockTimer = null!;
+
+    // SampleAggregator subscription tracking
+    private SampleAggregator? _currentAggregator;
 
     public StudioForm()
     {
@@ -64,28 +74,41 @@ public class StudioForm : Form
     private void InitializeComponent()
     {
         Text = "Studio";
-        Size = new Size(920, 520);
-        MinimumSize = new Size(820, 480);
+        Size = new Size(1060, 740);
+        MinimumSize = new Size(860, 640);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
-        // ---- CLOCK ----
+        // ══════════════════════════════════════════════════════════════════════
+        // TOP CONTROLS PANEL (fixed height, stretches horizontally)
+        // ══════════════════════════════════════════════════════════════════════
+        var topPanel = new Panel
+        {
+            Location = new Point(0, 0),
+            Height = 196,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            BackColor = SystemColors.Control
+        };
+        topPanel.SizeChanged += (s, e) => topPanel.Width = ClientSize.Width;
+
+        // ---- Clock (top-right of form) ----
         _lblClock = new Label
         {
             Text = DateTime.Now.ToString("HH:mm:ss"),
             Font = new Font("Microsoft Sans Serif", 22f, FontStyle.Bold),
             ForeColor = Color.Navy,
-            Size = new Size(200, 40),
-            Location = new Point(700, 8),
-            TextAlign = ContentAlignment.MiddleRight
+            Size = new Size(200, 42),
+            TextAlign = ContentAlignment.MiddleRight,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
 
         // ---- NOW PLAYING PANEL ----
         var nowPanel = new GroupBox
         {
             Text = "NOW PLAYING",
-            Location = new Point(8, 8),
-            Size = new Size(360, 180),
+            Location = new Point(8, 4),
+            Size = new Size(360, 186),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
@@ -109,32 +132,38 @@ public class StudioForm : Form
         _progressBar = new ProgressBar
         {
             Location = new Point(6, 68),
-            Size = new Size(280, 18),
+            Size = new Size(288, 16),
             Minimum = 0,
             Maximum = 1000,
-            Style = ProgressBarStyle.Continuous
+            Style = ProgressBarStyle.Continuous,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
         _lblElapsed = new Label
         {
             Text = "0:00",
-            Location = new Point(6, 90),
+            Location = new Point(6, 88),
             Size = new Size(80, 16),
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
         _lblRemaining = new Label
         {
-            Text = "0:00",
-            Location = new Point(220, 90),
+            Text = "-0:00",
+            Location = new Point(220, 88),
             Size = new Size(80, 16),
             TextAlign = ContentAlignment.MiddleRight,
             Font = new Font("Microsoft Sans Serif", 8f)
         };
 
-        _vuMeter = new VUMeter { Location = new Point(296, 64), Size = new Size(56, 108) };
+        _vuMeter = new VUMeter
+        {
+            Location = new Point(302, 64),
+            Size = new Size(52, 112),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
 
-        var lblIntro = new Label { Text = "Intro:", Location = new Point(6, 116), Size = new Size(40, 14), Font = new Font("Microsoft Sans Serif", 7f) };
-        var lblVoiceOut = new Label { Text = "VoiceOut:", Location = new Point(80, 116), Size = new Size(55, 14), Font = new Font("Microsoft Sans Serif", 7f) };
-        var lblMixIn = new Label { Text = "MixIn:", Location = new Point(170, 116), Size = new Size(40, 14), Font = new Font("Microsoft Sans Serif", 7f) };
+        var lblIntro = new Label { Text = "Intro:", Location = new Point(6, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
+        var lblVoiceOut = new Label { Text = "VoiceOut:", Location = new Point(78, 114), Size = new Size(55, 13), Font = new Font("Microsoft Sans Serif", 7f) };
+        var lblMixIn = new Label { Text = "MixIn:", Location = new Point(165, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
 
         nowPanel.Controls.AddRange(new Control[] { _lblArtist, _lblTitle, _progressBar, _lblElapsed, _lblRemaining, _vuMeter, lblIntro, lblVoiceOut, lblMixIn });
 
@@ -142,8 +171,9 @@ public class StudioForm : Form
         var ctrlPanel = new GroupBox
         {
             Text = "CONTROLS",
-            Location = new Point(378, 8),
-            Size = new Size(220, 180),
+            Location = new Point(376, 4),
+            Size = new Size(222, 186),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
@@ -178,11 +208,11 @@ public class StudioForm : Form
         _btnFadeOut = new Button { Text = "FADE OUT", Location = new Point(8, 96), Size = new Size(200, 24), FlatStyle = FlatStyle.System };
         _btnFadeOut.Click += (s, e) => AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromSeconds(5));
 
-        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 130), Size = new Size(55, 16) };
+        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 130), Size = new Size(52, 16) };
         _volumeSlider = new TrackBar
         {
-            Location = new Point(65, 124),
-            Size = new Size(120, 30),
+            Location = new Point(62, 124),
+            Size = new Size(118, 30),
             Minimum = 0,
             Maximum = 100,
             Value = 85,
@@ -193,39 +223,52 @@ public class StudioForm : Form
             AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f;
             _lblVolume.Text = _volumeSlider.Value + "%";
         };
-        _lblVolume = new Label { Text = "85%", Location = new Point(188, 130), Size = new Size(28, 16) };
+        _lblVolume = new Label { Text = "85%", Location = new Point(183, 130), Size = new Size(30, 16) };
 
-        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 158), Checked = true };
+        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 160), Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
 
         ctrlPanel.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, lblVol, _volumeSlider, _lblVolume, _chkAutoPlay });
 
-        // ---- UP NEXT PANEL ----
+        // ---- RIGHT PANEL (UP NEXT + PREVIEW + CLOCK, grows horizontally) ----
+        var rightPanel = new Panel
+        {
+            Location = new Point(606, 4),
+            Size = new Size(440, 186),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            BackColor = SystemColors.Control
+        };
+
+        // Position clock at top-right of rightPanel
+        _lblClock.Location = new Point(rightPanel.Width - 208, 0);
+        _lblClock.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
         var nextPanel = new GroupBox
         {
             Text = "UP NEXT",
-            Location = new Point(608, 8),
-            Size = new Size(290, 100),
+            Location = new Point(0, 0),
+            Size = new Size(440, 100),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
-        _lblNextArtist = new Label { Text = "---", Location = new Point(6, 18), Size = new Size(278, 18), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold) };
-        _lblNextTitle = new Label { Text = string.Empty, Location = new Point(6, 38), Size = new Size(278, 16) };
+        _lblNextArtist = new Label { Text = "---", Location = new Point(6, 18), Size = new Size(378, 18), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        _lblNextTitle = new Label { Text = string.Empty, Location = new Point(6, 38), Size = new Size(378, 16), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         _lblNextDuration = new Label { Text = string.Empty, Location = new Point(6, 58), Size = new Size(150, 14), Font = new Font("Microsoft Sans Serif", 7f) };
-        _btnLoadNext = new Button { Text = "Load", Location = new Point(158, 54), Size = new Size(60, 22), FlatStyle = FlatStyle.System };
+        _btnLoadNext = new Button { Text = "Load Next", Location = new Point(158, 54), Size = new Size(80, 22), FlatStyle = FlatStyle.System };
         _btnLoadNext.Click += BtnLoadNext_Click;
         nextPanel.Controls.AddRange(new Control[] { _lblNextArtist, _lblNextTitle, _lblNextDuration, _btnLoadNext });
 
-        // ---- PREVIEW PANEL ----
         var previewPanel = new GroupBox
         {
             Text = "PREVIEW / MONITOR",
-            Location = new Point(608, 116),
-            Size = new Size(290, 72),
+            Location = new Point(0, 108),
+            Size = new Size(440, 74),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
-        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(278, 14) };
+        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(380, 14), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         _btnPreviewPlay = new Button { Text = "▶", Location = new Point(6, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
-        _btnPreviewPlay.Click += (s, e) => { /* Preview play requires a track to be loaded via queue */ };
+        _btnPreviewPlay.Click += (s, e) => { /* Preview play requires a track queued via Load Next */ };
         _btnPreviewStop = new Button { Text = "■", Location = new Point(46, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
         _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
         var lblPreviewVol = new Label { Text = "Vol:", Location = new Point(90, 40), Size = new Size(28, 16) };
@@ -233,66 +276,173 @@ public class StudioForm : Form
         _previewVolumeSlider.ValueChanged += (s, e) => AudioEngine.Instance.PreviewVolume = _previewVolumeSlider.Value / 100f;
         previewPanel.Controls.AddRange(new Control[] { _lblPreviewTrack, _btnPreviewPlay, _btnPreviewStop, lblPreviewVol, _previewVolumeSlider });
 
-        // ---- PLAYLIST LIST ----
+        rightPanel.Controls.AddRange(new Control[] { _lblClock, nextPanel, previewPanel });
+        topPanel.Controls.AddRange(new Control[] { nowPanel, ctrlPanel, rightPanel });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // STREAMING STATUS BAR
+        // ══════════════════════════════════════════════════════════════════════
+        var streamBar = new Panel
+        {
+            Location = new Point(0, 196),
+            Height = 28,
+            BackColor = Color.FromArgb(30, 30, 45),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        streamBar.SizeChanged += (s, e) => streamBar.Width = ClientSize.Width;
+
+        _lblStreamStatus = new Label
+        {
+            Text = "🔴  Stream: OFF  —  Click 'Stream Settings' to enable web streaming",
+            ForeColor = Color.FromArgb(180, 180, 200),
+            Font = new Font("Microsoft Sans Serif", 8f),
+            Location = new Point(6, 5),
+            Size = new Size(750, 18),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        _btnStreamSettings = new Button
+        {
+            Text = "📡 Stream Settings",
+            Location = new Point(streamBar.Width - 130, 3),
+            Size = new Size(126, 22),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.FromArgb(180, 220, 255),
+            BackColor = Color.FromArgb(50, 70, 100),
+            Font = new Font("Microsoft Sans Serif", 7.5f),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
+        };
+        _btnStreamSettings.FlatAppearance.BorderColor = Color.FromArgb(80, 110, 160);
+        _btnStreamSettings.Click += (s, e) => OpenStreamingForm();
+        streamBar.Controls.AddRange(new Control[] { _lblStreamStatus, _btnStreamSettings });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // LARGE SPECTRUM ANALYZER
+        // ══════════════════════════════════════════════════════════════════════
+        var spectrumPanel = new GroupBox
+        {
+            Text = "SPECTRUM ANALYZER",
+            Location = new Point(0, 224),
+            Height = 210,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
+            BackColor = Color.Black,
+            ForeColor = Color.FromArgb(0, 200, 0)
+        };
+        spectrumPanel.SizeChanged += (s, e) => spectrumPanel.Width = ClientSize.Width;
+
+        _spectrum = new SpectrumAnalyzer
+        {
+            Location = new Point(4, 16),
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+        };
+        spectrumPanel.Controls.Add(_spectrum);
+        // Resize spectrum to fill the group box
+        spectrumPanel.SizeChanged += (s, e) =>
+        {
+            _spectrum.Size = new Size(spectrumPanel.ClientSize.Width - 8, spectrumPanel.ClientSize.Height - 20);
+        };
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PLAYLIST PANEL (fills remaining space)
+        // ══════════════════════════════════════════════════════════════════════
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Location = new Point(8, 198),
-            Size = new Size(888, 270),
+            Location = new Point(0, 434),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
         _lvPlaylist = new ListView
         {
-            Location = new Point(6, 18),
-            Size = new Size(876, 242),
+            Location = new Point(4, 18),
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
             BorderStyle = BorderStyle.Fixed3D,
-            Font = new Font("Microsoft Sans Serif", 8f)
+            Font = new Font("Microsoft Sans Serif", 8f),
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
-        _lvPlaylist.Columns.Add("#", 30);
-        _lvPlaylist.Columns.Add("Artist", 160);
-        _lvPlaylist.Columns.Add("Title", 200);
-        _lvPlaylist.Columns.Add("Duration", 70);
-        _lvPlaylist.Columns.Add("Start", 80);
+        _lvPlaylist.Columns.Add("#", 32);
+        _lvPlaylist.Columns.Add("Artist", 170);
+        _lvPlaylist.Columns.Add("Title", 210);
+        _lvPlaylist.Columns.Add("Duration", 72);
+        _lvPlaylist.Columns.Add("Start", 82);
         _lvPlaylist.Columns.Add("Status", 80);
         _lvPlaylist.DoubleClick += LvPlaylist_DoubleClick;
 
         playlistPanel.Controls.Add(_lvPlaylist);
 
-        Controls.AddRange(new Control[] { _lblClock, nowPanel, ctrlPanel, nextPanel, previewPanel, playlistPanel });
+        // Wire up SizeChanged to keep playlist and its listview filling the space
+        SizeChanged += (s, e) =>
+        {
+            topPanel.Width = ClientSize.Width;
+            streamBar.Width = ClientSize.Width;
+            spectrumPanel.Width = ClientSize.Width;
+            rightPanel.Width = ClientSize.Width - 614;
+
+            playlistPanel.Location = new Point(0, 434);
+            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 434);
+            _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
+
+            _btnStreamSettings.Location = new Point(streamBar.Width - 130, 3);
+        };
+
+        Controls.AddRange(new Control[] { topPanel, streamBar, spectrumPanel, playlistPanel });
+
+        // Fire SizeChanged once to initialize sizes
+        OnSizeChanged(EventArgs.Empty);
+    }
+
+    private void OpenStreamingForm()
+    {
+        if (MdiParent != null)
+        {
+            foreach (Form child in MdiParent.MdiChildren)
+                if (child is StreamingForm) { child.Activate(); return; }
+            var f = new StreamingForm { MdiParent = MdiParent };
+            f.Show();
+        }
+        else
+        {
+            using var f = new StreamingForm();
+            f.ShowDialog(this);
+        }
     }
 
     private void ConnectAudioEngine()
     {
+        // Subscribe to SampleAggregator changes for real spectrum + VU data
+        AudioEngine.Instance.MainSampleAggregatorChanged += OnMainAggregatorChanged;
+
         AudioEngine.Instance.TrackStarted += (s, e) =>
         {
             if (e.Device != AudioDeviceType.Main) return;
+            if (!IsHandleCreated) return;
             BeginInvoke(() =>
             {
                 var t = e.Track;
-                if (t != null)
-                {
-                    _lblArtist.Text = t.Artist;
-                    _lblTitle.Text = t.Title;
-                    _btnPlayPause.Text = "⏸ PAUSE";
-                    _btnPlayPause.BackColor = Color.FromArgb(255, 255, 180);
-                }
+                if (t == null) return;
+                _lblArtist.Text = t.Artist;
+                _lblTitle.Text = t.Title;
+                _btnPlayPause.Text = "⏸ PAUSE";
+                _btnPlayPause.BackColor = Color.FromArgb(255, 255, 180);
             });
         };
 
         AudioEngine.Instance.TrackEnded += (s, e) =>
         {
             if (e.Device != AudioDeviceType.Main) return;
+            if (!IsHandleCreated) return;
             BeginInvoke(() =>
             {
                 _btnPlayPause.Text = "▶ PLAY";
                 _btnPlayPause.BackColor = Color.FromArgb(200, 255, 200);
                 _progressBar.Value = 0;
                 _lblElapsed.Text = "0:00";
-                _lblRemaining.Text = "0:00";
+                _lblRemaining.Text = "-0:00";
                 MarkCurrentPlayed();
                 if (_autoPlay) PlayNext();
             });
@@ -300,16 +450,85 @@ public class StudioForm : Form
 
         AudioEngine.Instance.TrackPositionChanged += (s, e) =>
         {
+            if (!IsHandleCreated) return;
             BeginInvoke(() =>
             {
                 _progressBar.Value = (int)(e.Fraction * 1000);
                 _lblElapsed.Text = FormatTime(e.Position);
                 _lblRemaining.Text = "-" + FormatTime(e.Duration - e.Position);
-                // VU meter uses a simulated level - real implementation would read
-                // audio sample peak values from the NAudio SampleProvider pipeline
-                _vuMeter.UpdateLevel(Math.Clamp(0.4 + Math.Sin(e.Position.TotalSeconds * 3) * 0.35, 0, 1));
             });
         };
+
+        // Stream status updates
+        StreamManager.Instance.StatusChanged += (s, msg) =>
+        {
+            if (!IsHandleCreated) return;
+            BeginInvoke(() => UpdateStreamStatusBar());
+        };
+        StreamManager.Instance.ClientConnected += (s, e) =>
+        {
+            if (!IsHandleCreated) return;
+            BeginInvoke(() => UpdateStreamStatusBar());
+        };
+        StreamManager.Instance.ClientDisconnected += (s, e) =>
+        {
+            if (!IsHandleCreated) return;
+            BeginInvoke(() => UpdateStreamStatusBar());
+        };
+    }
+
+    private void OnMainAggregatorChanged(object? sender, EventArgs e)
+    {
+        // Unsubscribe from old aggregator
+        if (_currentAggregator != null)
+        {
+            _currentAggregator.FftDataAvailable -= OnFftData;
+            _currentAggregator.MaximumCalculated -= OnMaxSample;
+            _currentAggregator = null;
+        }
+
+        // Subscribe to new aggregator
+        var agg = AudioEngine.Instance.MainSampleAggregator;
+        _currentAggregator = agg;
+        if (agg != null)
+        {
+            agg.FftDataAvailable += OnFftData;
+            agg.MaximumCalculated += OnMaxSample;
+        }
+        else
+        {
+            // Playback stopped — reset spectrum
+            if (IsHandleCreated) BeginInvoke(() => _spectrum.Reset());
+        }
+    }
+
+    private void OnFftData(object? sender, FftEventArgs e)
+    {
+        if (!IsHandleCreated) return;
+        BeginInvoke(() => _spectrum.UpdateFft(e.Result));
+    }
+
+    private void OnMaxSample(object? sender, MaxSampleEventArgs e)
+    {
+        if (!IsHandleCreated) return;
+        BeginInvoke(() => _vuMeter.UpdateLevel(Math.Abs(e.MaxValue)));
+    }
+
+    private void UpdateStreamStatusBar()
+    {
+        bool on = StreamManager.Instance.IsStreaming;
+        if (on)
+        {
+            int listeners = StreamManager.Instance.ListenerCount;
+            string url = $"http://localhost:{StreamManager.Instance.Port}/stream";
+            _lblStreamStatus.Text = $"🟢  Stream: ON  —  {listeners} listener{(listeners == 1 ? "" : "s")}  —  {url}";
+            _lblStreamStatus.ForeColor = Color.FromArgb(100, 240, 100);
+        }
+        else
+        {
+            _lblStreamStatus.Text = "🔴  Stream: OFF  —  Click 'Stream Settings' to enable web streaming";
+            _lblStreamStatus.ForeColor = Color.FromArgb(180, 180, 200);
+        }
     }
 
     private void StudioForm_Load(object? sender, EventArgs e)
@@ -321,9 +540,7 @@ public class StudioForm : Form
     {
         _currentPlaylist = PlaylistDb?.GetCurrentPlaylist();
         if (_currentPlaylist == null)
-        {
             _currentPlaylist = new Playlist { Name = "Empty Playlist" };
-        }
         RefreshPlaylistView();
         ShowNextTrack();
     }
@@ -365,7 +582,7 @@ public class StudioForm : Form
     private void ShowNextTrack()
     {
         if (_currentPlaylist == null || _currentPlaylist.Items.Count == 0) return;
-        var nextIdx = _currentIndex + 1;
+        int nextIdx = _currentIndex + 1;
         if (nextIdx < _currentPlaylist.Items.Count)
         {
             var next = _currentPlaylist.Items[nextIdx];
@@ -410,13 +627,11 @@ public class StudioForm : Form
         var item = _currentPlaylist.Items[_currentIndex];
         var track = MusicDb?.GetById(item.TrackId);
         if (track == null)
-        {
             track = new MusicTrack { Artist = item.Artist, Title = item.Title, FileName = string.Empty };
-        }
 
         if (!File.Exists(track.FullPath))
         {
-            MessageBox.Show($"File not found: {track.FullPath}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show($"File not found:\n{track.FullPath}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -481,7 +696,7 @@ public class StudioForm : Form
     private void LvPlaylist_DoubleClick(object? sender, EventArgs e)
     {
         if (_lvPlaylist.SelectedItems.Count == 0) return;
-        var idx = (int)(_lvPlaylist.SelectedItems[0].Tag ?? 0);
+        int idx = (int)(_lvPlaylist.SelectedItems[0].Tag ?? 0);
         MarkCurrentPlayed();
         AudioEngine.Instance.Stop();
         _currentIndex = idx;
@@ -497,6 +712,16 @@ public class StudioForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _clockTimer.Stop();
+
+        // Safely unsubscribe
+        AudioEngine.Instance.MainSampleAggregatorChanged -= OnMainAggregatorChanged;
+        if (_currentAggregator != null)
+        {
+            _currentAggregator.FftDataAvailable -= OnFftData;
+            _currentAggregator.MaximumCalculated -= OnMaxSample;
+        }
+
         base.OnFormClosed(e);
     }
 }
+

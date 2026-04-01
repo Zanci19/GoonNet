@@ -32,6 +32,7 @@ public class PlaylistEditorForm : Form
     {
         Text = "Playlist Editor";
         Size = new Size(700, 520);
+        MinimumSize = new Size(580, 400);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 

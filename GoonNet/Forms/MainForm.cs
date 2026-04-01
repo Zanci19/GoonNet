@@ -115,6 +115,7 @@ public class MainForm : Form
         {
             new ToolStripMenuItem("&File Manager", null, (s, e) => OpenFileManager()),
             new ToolStripMenuItem("&User Manager", null, (s, e) => OpenUserManager()),
+            new ToolStripMenuItem("&Streaming...", null, (s, e) => OpenStreaming()),
             new ToolStripMenuItem("&Email Settings", null, (s, e) => OpenSettings()),
             new ToolStripMenuItem("&Telnet Server", null, (s, e) => MessageBox.Show("Telnet server settings coming soon", "GoonNet"))
         });
@@ -153,10 +154,13 @@ public class MainForm : Form
             AudioEngine.Instance.Stop(AudioDeviceType.Preview);
         };
 
+        var btnStream = new ToolStripButton("📡 STREAM") { DisplayStyle = ToolStripItemDisplayStyle.Text, ToolTipText = "Web Streaming" };
+        btnStream.Click += (s, e) => OpenStreaming();
+
         var btnAbout = new ToolStripButton("About") { DisplayStyle = ToolStripItemDisplayStyle.Text };
         btnAbout.Click += ShowAbout;
 
-        bar.Items.AddRange(new ToolStripItem[] { btnStudio, btnLibrary, btnSchedule, new ToolStripSeparator(), btnStop, new ToolStripSeparator(), btnAbout });
+        bar.Items.AddRange(new ToolStripItem[] { btnStudio, btnLibrary, btnSchedule, new ToolStripSeparator(), btnStop, btnStream, new ToolStripSeparator(), btnAbout });
         Controls.Add(bar);
     }
 
@@ -266,6 +270,14 @@ public class MainForm : Form
             return;
         }
         var f = new UserManagerForm { MdiParent = this, UserDb = UserDb };
+        f.Show();
+    }
+
+    private void OpenStreaming()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is StreamingForm) { child.Activate(); return; }
+        var f = new StreamingForm { MdiParent = this };
         f.Show();
     }
 
