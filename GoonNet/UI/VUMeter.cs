@@ -71,7 +71,8 @@ public class VUMeter : UserControl
                 segColor = i < litSegments ? Color.Yellow : Color.FromArgb(80, 80, 0);
             else
                 segColor = i < litSegments ? Color.Lime : Color.FromArgb(0, 60, 0);
-            g.FillRectangle(new SolidBrush(segColor), rect);
+            using (var brush = new SolidBrush(segColor))
+                g.FillRectangle(brush, rect);
 
             if (i == peakSegment - 1 && _peak > 0)
                 g.FillRectangle(Brushes.White, rect);
