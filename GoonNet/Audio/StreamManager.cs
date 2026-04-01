@@ -50,6 +50,8 @@ public sealed class StreamManager : IDisposable
     private StreamManager()
     {
         AudioEngine.Instance.MainSampleAggregatorChanged += OnSampleAggregatorChanged;
+        // Attach immediately in case playback was already initialized before StreamManager was created
+        OnSampleAggregatorChanged(this, EventArgs.Empty);
     }
 
     // ── AudioEngine hookup ────────────────────────────────────────────────────
@@ -121,7 +123,6 @@ public sealed class StreamManager : IDisposable
         {
             var hl = new HttpListener();
             hl.Prefixes.Add($"http://+:{Port}/");
-            hl.Start();
             return hl;
         }
         catch (HttpListenerException)
