@@ -347,7 +347,7 @@ public class StudioForm : Form
         {
             Text = "SPECTRUM ANALYZER",
             Location = new Point(0, 304),   // 224 + 80 toolsBar height
-            Height = 180,
+            Height = 280,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             BackColor = Color.Black,
@@ -372,7 +372,7 @@ public class StudioForm : Form
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Location = new Point(0, 484),   // 304 + 180 = 484
+            Location = new Point(0, 584),   // 304 + 280 = 584
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
@@ -406,8 +406,8 @@ public class StudioForm : Form
             spectrumPanel.Width = ClientSize.Width;
             rightPanel.Width = ClientSize.Width - 614;
 
-            playlistPanel.Location = new Point(0, 484);
-            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 484);
+            playlistPanel.Location = new Point(0, 584);
+            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 584);
             _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
 
             _btnStreamSettings.Location = new Point(streamBar.Width - 130, 3);

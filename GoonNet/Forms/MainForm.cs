@@ -54,6 +54,7 @@ public class MainForm : Form
         Text = "GoonNet Radio Automation";
         Size = new Size(1024, 768);
         StartPosition = FormStartPosition.CenterScreen;
+        WindowState = FormWindowState.Maximized;
         IsMdiContainer = true;
         BackColor = SystemColors.AppWorkspace;
         Font = new Font("Microsoft Sans Serif", 8f);
@@ -96,10 +97,10 @@ public class MainForm : Form
         libMenu.DropDownItems.AddRange(new ToolStripItem[]
         {
             new ToolStripMenuItem("&Music Library", null, (s, e) => OpenMusicLibrary()),
-            new ToolStripMenuItem("&Jingles", null, (s, e) => MessageBox.Show("Jingle Manager coming soon", "GoonNet")),
-            new ToolStripMenuItem("&Advertisements", null, (s, e) => MessageBox.Show("Ad Manager coming soon", "GoonNet")),
-            new ToolStripMenuItem("&Backgrounds", null, (s, e) => MessageBox.Show("Background Manager coming soon", "GoonNet")),
-            new ToolStripMenuItem("Bl&ocks", null, (s, e) => MessageBox.Show("Block Manager coming soon", "GoonNet"))
+            new ToolStripMenuItem("&Jingles", null, (s, e) => OpenJingleManager()),
+            new ToolStripMenuItem("&Advertisements", null, (s, e) => OpenAdManager()),
+            new ToolStripMenuItem("&Backgrounds", null, (s, e) => OpenBackgroundManager()),
+            new ToolStripMenuItem("Bl&ocks", null, (s, e) => OpenBlockManager())
         });
 
         var schedMenu = new ToolStripMenuItem("&Schedule");
@@ -260,39 +261,73 @@ public class MainForm : Form
     private void OpenStudio()
     {
         foreach (Form child in MdiChildren)
-            if (child is StudioForm) { child.Activate(); return; }
+            if (child is StudioForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
         var f = new StudioForm { MdiParent = this, PlaylistDb = PlaylistDb, MusicDb = MusicDb, LogDb = LogDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenMusicLibrary()
     {
         var f = new MusicLibraryForm { MdiParent = this, MusicDb = MusicDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenJingleManager()
+    {
+        var f = new JingleManagerForm { MdiParent = this, JingleDb = JingleDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenAdManager()
+    {
+        var f = new AdManagerForm { MdiParent = this, AdDb = AdDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenBackgroundManager()
+    {
+        var f = new BackgroundManagerForm { MdiParent = this, BackgroundDb = BackgroundDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenBlockManager()
+    {
+        var f = new BlockManagerForm { MdiParent = this, BlockDb = BlockDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenScheduler()
     {
         var f = new SchedulerForm { MdiParent = this, EventDb = EventDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenPlaylistEditor()
     {
         var f = new PlaylistEditorForm { MdiParent = this, PlaylistDb = PlaylistDb, MusicDb = MusicDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenFileManager()
     {
         var f = new FileManagerForm { MdiParent = this };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenLogViewer()
     {
         var f = new LogViewerForm { MdiParent = this, LogDb = LogDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenSettings()
@@ -310,14 +345,16 @@ public class MainForm : Form
         }
         var f = new UserManagerForm { MdiParent = this, UserDb = UserDb };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void OpenStreaming()
     {
         foreach (Form child in MdiChildren)
-            if (child is StreamingForm) { child.Activate(); return; }
+            if (child is StreamingForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
         var f = new StreamingForm { MdiParent = this };
         f.Show();
+        f.WindowState = FormWindowState.Maximized;
     }
 
     private void ShowAbout(object? sender, EventArgs e) => ShowAbout();

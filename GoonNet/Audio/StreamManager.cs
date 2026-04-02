@@ -207,8 +207,9 @@ public sealed class StreamManager : IDisposable
             ctx.Response.Headers["icy-br"] = BitRate.ToString();
             ctx.Response.Headers["icy-metaint"] = "0";
             ctx.Response.Headers["Cache-Control"] = "no-cache, no-store";
-            ctx.Response.Headers["Connection"] = "close";
-            ctx.Response.SendChunked = false;
+            ctx.Response.Headers["Connection"] = "keep-alive";
+            ctx.Response.Headers["Access-Control-Allow-Origin"] = "*";
+            ctx.Response.SendChunked = true;
 
             var client = new StreamClient(ctx.Response.OutputStream);
             _broadcast.AddClient(client);
@@ -256,6 +257,8 @@ public sealed class StreamManager : IDisposable
     .tip {{ color: #aaa; font-size: 0.85em; margin-top: 0.6em; }}
     .url {{ font-family: monospace; background: #0a0a1a; padding: 0.3em 0.6em; border-radius: 3px; word-break: break-all; }}
     .green {{ color: #00ff88; }}
+    .play-btn {{ display: inline-block; margin-top: 0.8em; background: #e94560; color: #fff; border: none; border-radius: 6px; padding: 0.5em 1.4em; font-size: 1em; cursor: pointer; }}
+    .play-btn:hover {{ background: #ff6080; }}
   </style>
 </head>
 <body>
@@ -264,11 +267,13 @@ public sealed class StreamManager : IDisposable
 
   <div class='card'>
     <h2>🎧 Listen Now</h2>
-    <audio class='player' controls autoplay preload='none'>
+    <audio id='player' class='player' controls preload='auto'>
       <source src='/stream' type='audio/mpeg'>
       Your browser does not support audio streaming.
     </audio>
-    <p class='tip'>If the player above doesn't work, open the stream URL directly in VLC or another media player.</p>
+    <br>
+    <button class='play-btn' onclick='document.getElementById(""player"").play()'>▶ Play Stream</button>
+    <p class='tip'>Click Play above, or open the stream URL directly in VLC or another media player.</p>
   </div>
 
   <div class='card'>
