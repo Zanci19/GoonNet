@@ -122,6 +122,7 @@ public class PlaylistEditorForm : Form
         for (int i = 0; i < _currentPlaylist.Items.Count; i++)
         {
             var item = _currentPlaylist.Items[i];
+            EnsureDisplayFields(item);
             var lvi = new ListViewItem((i + 1).ToString());
             lvi.SubItems.Add(item.Artist);
             lvi.SubItems.Add(item.Title);
@@ -132,6 +133,18 @@ public class PlaylistEditorForm : Form
         }
         _lvItems.EndUpdate();
         _lblTotal.Text = $"Total: {_currentPlaylist.TotalDuration:h\\:mm\\:ss}";
+    }
+
+    private void EnsureDisplayFields(PlaylistItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.Artist) && !string.IsNullOrWhiteSpace(item.Title))
+            return;
+        var track = MusicDb?.GetById(item.TrackId);
+        if (track == null) return;
+        item.Artist = track.Artist;
+        item.Title = track.Title;
+        if (!item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero)
+            item.Duration = track.Duration > TimeSpan.Zero ? track.Duration : null;
     }
 
     private void BtnNewPlaylist_Click(object? sender, EventArgs e)

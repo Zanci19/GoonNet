@@ -66,9 +66,7 @@ public class PlaylistItem
         set => Duration = value != null && TimeSpan.TryParse(value, out var ts) ? ts : (TimeSpan?)null;
     }
 
-    // Denormalized display fields
-    [XmlIgnore]
+    // Denormalized display fields (persisted so playlists remain readable after restart)
     public string Artist { get; set; } = string.Empty;
-    [XmlIgnore]
     public string Title { get; set; } = string.Empty;
 }

@@ -1121,6 +1121,7 @@ public class StudioForm : Form
         for (int i = 0; i < _currentPlaylist.Items.Count; i++)
         {
             var item = _currentPlaylist.Items[i];
+            EnsureDisplayFields(item);
             var lvi = new ListViewItem((i + 1).ToString());
             lvi.SubItems.Add(item.Artist);
             lvi.SubItems.Add(item.Title);
@@ -1152,6 +1153,7 @@ public class StudioForm : Form
         if (nextIdx < _currentPlaylist.Items.Count)
         {
             var next = _currentPlaylist.Items[nextIdx];
+            EnsureDisplayFields(next);
             _lblNextArtist.Text = next.Artist;
             _lblNextTitle.Text = next.Title;
             _lblNextDuration.Text = FormatTime(next.Duration ?? TimeSpan.Zero);
@@ -1191,6 +1193,7 @@ public class StudioForm : Form
         if (_currentIndex >= _currentPlaylist.Items.Count) return;
 
         var item = _currentPlaylist.Items[_currentIndex];
+        EnsureDisplayFields(item);
         var track = MusicDb?.GetById(item.TrackId);
         if (track == null)
             track = new MusicTrack { Artist = item.Artist, Title = item.Title, FileName = string.Empty };
@@ -1217,6 +1220,19 @@ public class StudioForm : Form
         MusicDb?.UpdatePlayStats(track.Id);
         LogDb?.AddEntry(track.Artist, track.Title, track.FileName, EventType.Music);
         RefreshPlaylistView();
+    }
+
+    private void EnsureDisplayFields(PlaylistItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.Artist) && !string.IsNullOrWhiteSpace(item.Title))
+            return;
+
+        var track = MusicDb?.GetById(item.TrackId);
+        if (track == null) return;
+        item.Artist = track.Artist;
+        item.Title = track.Title;
+        if (!item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero)
+            item.Duration = track.Duration > TimeSpan.Zero ? track.Duration : null;
     }
 
     private void PlayNext()
