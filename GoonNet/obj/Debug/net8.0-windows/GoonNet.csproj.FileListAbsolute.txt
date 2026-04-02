@@ -25,3 +25,4 @@
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/libmp3lame.32.dll
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/libmp3lame.64.dll
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/NAudio.Lame.dll
+/home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/SoundTouch.Net.dll
