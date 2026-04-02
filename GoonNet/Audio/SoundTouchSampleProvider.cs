@@ -32,14 +32,14 @@ public sealed class SoundTouchSampleProvider : ISampleProvider
     public double TempoChange
     {
         get => _processor.TempoChange;
-        set => _processor.TempoChange = Math.Clamp(value, -70.0, 100.0);
+        set => _processor.TempoChange = Math.Clamp(value, -50.0, 100.0);
     }
 
     /// <summary>Rate change in percent. 0 = normal. Changes both speed and pitch together.</summary>
     public double RateChange
     {
         get => _processor.RateChange;
-        set => _processor.RateChange = Math.Clamp(value, -70.0, 100.0);
+        set => _processor.RateChange = Math.Clamp(value, -50.0, 100.0);
     }
 
     public SoundTouchSampleProvider(ISampleProvider source)

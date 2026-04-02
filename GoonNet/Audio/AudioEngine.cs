@@ -91,7 +91,7 @@ public sealed class AudioEngine : IDisposable
         get => _tempoChangePercent;
         set
         {
-            _tempoChangePercent = Math.Clamp(value, -70.0, 100.0);
+            _tempoChangePercent = Math.Clamp(value, -50.0, 100.0);
             if (_mainPitchSpeed != null) _mainPitchSpeed.TempoChange = _tempoChangePercent;
         }
     }
@@ -102,7 +102,7 @@ public sealed class AudioEngine : IDisposable
         get => _rateChangePercent;
         set
         {
-            _rateChangePercent = Math.Clamp(value, -70.0, 100.0);
+            _rateChangePercent = Math.Clamp(value, -50.0, 100.0);
             if (_mainPitchSpeed != null) _mainPitchSpeed.RateChange = _rateChangePercent;
         }
     }

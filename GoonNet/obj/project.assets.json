@@ -565,11 +565,11 @@
     "net8.0-windows7.0": [
       "NAudio >= 2.2.1",
       "NAudio.Lame >= 2.1.0",
-      "soundtouch.net >= 2.3.2"
+      "SoundTouch.Net >= 2.3.2"
     ]
   },
   "packageFolders": {
-    "/home/runner/.nuget/packages/": {}
+    "/tmp/codeql-scratch-a1709af54d5f21e3/dbs/csharp/working/packages": {}
   },
   "project": {
     "version": "1.0.0",
@@ -577,7 +577,7 @@
       "projectUniqueName": "/home/runner/work/GoonNet/GoonNet/GoonNet/GoonNet.csproj",
       "projectName": "GoonNet",
       "projectPath": "/home/runner/work/GoonNet/GoonNet/GoonNet/GoonNet.csproj",
-      "packagesPath": "/home/runner/.nuget/packages/",
+      "packagesPath": "/tmp/codeql-scratch-a1709af54d5f21e3/dbs/csharp/working/packages",
       "outputPath": "/home/runner/work/GoonNet/GoonNet/GoonNet/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
@@ -619,7 +619,7 @@
             "target": "Package",
             "version": "[2.1.0, )"
           },
-          "soundtouch.net": {
+          "SoundTouch.Net": {
             "target": "Package",
             "version": "[2.3.2, )"
           }
@@ -636,6 +636,18 @@
         "assetTargetFallback": true,
         "warn": true,
         "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.25, 8.0.25]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.linux-x64",
+            "version": "[8.0.25, 8.0.25]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.25, 8.0.25]"
+          },
           {
             "name": "Microsoft.WindowsDesktop.App.Ref",
             "version": "[8.0.25, 8.0.25]"
