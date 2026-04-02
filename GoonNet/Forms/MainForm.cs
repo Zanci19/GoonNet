@@ -88,6 +88,7 @@ public class MainForm : Form
             new ToolStripMenuItem("&Studio", null, (s, e) => OpenStudio()),
             new ToolStripMenuItem("S&cheduler", null, (s, e) => OpenScheduler()),
             new ToolStripMenuItem("&Log Viewer", null, (s, e) => OpenLogViewer()),
+            new ToolStripMenuItem("&Error Log", null, (s, e) => OpenErrorLog()),
             new ToolStripSeparator(),
             new ToolStripMenuItem("&Cascade", null, (s, e) => LayoutMdi(MdiLayout.Cascade)),
             new ToolStripMenuItem("&Tile", null, (s, e) => LayoutMdi(MdiLayout.TileHorizontal))
@@ -162,6 +163,7 @@ public class MainForm : Form
             new ToolStripSeparator(),
             NavBtn("📂 Files",     "File Manager",             OpenFileManager),
             NavBtn("📜 Log",       "Broadcast Log Viewer",     OpenLogViewer),
+            NavBtn("⚠ Errors",    "Error Log",                OpenErrorLog),
             NavBtn("👤 Users",     "User Manager",             OpenUserManager),
         });
         Controls.Add(navBar);
@@ -216,6 +218,9 @@ public class MainForm : Form
 
     private async void MainForm_Load(object? sender, EventArgs e)
     {
+        AudioEngine.Instance.Error += (s, args) =>
+            ErrorLog.Instance.Add($"Audio ({args.Device})", args.Message);
+
         await MusicDb.LoadAsync();
         await JingleDb.LoadAsync();
         await AdDb.LoadAsync();
@@ -326,6 +331,15 @@ public class MainForm : Form
     private void OpenLogViewer()
     {
         var f = new LogViewerForm { MdiParent = this, LogDb = LogDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenErrorLog()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is ErrorLogForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new ErrorLogForm { MdiParent = this };
         f.Show();
         f.WindowState = FormWindowState.Maximized;
     }
