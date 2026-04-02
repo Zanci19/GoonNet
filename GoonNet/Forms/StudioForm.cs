@@ -56,6 +56,17 @@ public class StudioForm : Form
     private Label _lblStreamStatus = null!;
     private Button _btnStreamSettings = null!;
 
+    // Pitch / Speed bar
+    private Panel _pitchSpeedBar = null!;
+    private TrackBar _pitchSlider = null!;
+    private TrackBar _tempoSlider = null!;
+    private TrackBar _rateSlider = null!;
+    private Label _lblPitchVal = null!;
+    private Label _lblTempoVal = null!;
+    private Label _lblRateVal = null!;
+    private ComboBox _cboPlaylistSelect = null!;
+    private Button _btnSaveSession = null!;
+
     // Studio Tools bar (mic + transition)
     private Panel _studioToolsBar = null!;
     // -- Mic talkover
@@ -90,8 +101,8 @@ public class StudioForm : Form
     private void InitializeComponent()
     {
         Text = "Studio";
-        Size = new Size(1060, 740);
-        MinimumSize = new Size(860, 640);
+        Size = new Size(1060, 810);
+        MinimumSize = new Size(860, 700);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
@@ -334,10 +345,17 @@ public class StudioForm : Form
         streamBar.Controls.AddRange(new Control[] { _lblStreamStatus, _btnStreamSettings });
 
         // ══════════════════════════════════════════════════════════════════════
+        // PITCH & SPEED BAR
+        // ══════════════════════════════════════════════════════════════════════
+        _pitchSpeedBar = BuildPitchSpeedBar();
+        _pitchSpeedBar.Location = new Point(0, 224);
+        _pitchSpeedBar.SizeChanged += (s, e) => _pitchSpeedBar.Width = ClientSize.Width;
+
+        // ══════════════════════════════════════════════════════════════════════
         // STUDIO TOOLS BAR  (transition sounds + microphone talkover)
         // ══════════════════════════════════════════════════════════════════════
         _studioToolsBar = BuildStudioToolsBar();
-        _studioToolsBar.Location = new Point(0, 224);
+        _studioToolsBar.Location = new Point(0, 288);
         _studioToolsBar.SizeChanged += (s, e) => _studioToolsBar.Width = ClientSize.Width;
 
         // ══════════════════════════════════════════════════════════════════════
@@ -346,7 +364,7 @@ public class StudioForm : Form
         var spectrumPanel = new GroupBox
         {
             Text = "SPECTRUM ANALYZER",
-            Location = new Point(0, 304),   // 224 + 80 toolsBar height
+            Location = new Point(0, 368),   // 288 + 80 toolsBar height
             Height = 280,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
@@ -372,7 +390,7 @@ public class StudioForm : Form
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Location = new Point(0, 584),   // 304 + 280 = 584
+            Location = new Point(0, 648),   // 368 + 280 = 648
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
@@ -402,21 +420,323 @@ public class StudioForm : Form
         {
             topPanel.Width = ClientSize.Width;
             streamBar.Width = ClientSize.Width;
+            _pitchSpeedBar.Width = ClientSize.Width;
             _studioToolsBar.Width = ClientSize.Width;
             spectrumPanel.Width = ClientSize.Width;
             rightPanel.Width = ClientSize.Width - 614;
 
-            playlistPanel.Location = new Point(0, 584);
-            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 584);
+            playlistPanel.Location = new Point(0, 648);
+            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 648);
             _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
 
             _btnStreamSettings.Location = new Point(streamBar.Width - 130, 3);
         };
 
-        Controls.AddRange(new Control[] { topPanel, streamBar, _studioToolsBar, spectrumPanel, playlistPanel });
+        Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, _studioToolsBar, spectrumPanel, playlistPanel });
 
         // Fire SizeChanged once to initialize sizes
         OnSizeChanged(EventArgs.Empty);
+    }
+
+    private Panel BuildPitchSpeedBar()
+    {
+        var bar = new Panel
+        {
+            Height = 64,
+            BackColor = Color.FromArgb(20, 22, 34),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        // ── LEFT: Playlist selector + session save ──────────────────────────
+        var lblPl = new Label { Text = "Playlist:", Location = new Point(8, 8), Size = new Size(52, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        _cboPlaylistSelect = new ComboBox
+        {
+            Location = new Point(62, 5),
+            Size = new Size(240, 20),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            BackColor = Color.FromArgb(40, 45, 60),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Popup,
+            Font = new Font("Microsoft Sans Serif", 7.5f)
+        };
+        _cboPlaylistSelect.SelectedIndexChanged += CboPlaylistSelect_Changed;
+
+        var btnLoad = new Button
+        {
+            Text = "📋 Load",
+            Location = new Point(306, 4),
+            Size = new Size(62, 22),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.FromArgb(180, 220, 255),
+            BackColor = Color.FromArgb(40, 55, 80),
+            Font = new Font("Microsoft Sans Serif", 7.5f)
+        };
+        btnLoad.FlatAppearance.BorderColor = Color.FromArgb(80, 110, 160);
+        btnLoad.Click += (s, e) => LoadSelectedPlaylist();
+
+        _btnSaveSession = new Button
+        {
+            Text = "💾 Save",
+            Location = new Point(372, 4),
+            Size = new Size(62, 22),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.FromArgb(200, 255, 180),
+            BackColor = Color.FromArgb(30, 55, 30),
+            Font = new Font("Microsoft Sans Serif", 7.5f)
+        };
+        _btnSaveSession.FlatAppearance.BorderColor = Color.FromArgb(60, 130, 60);
+        _btnSaveSession.Click += (s, e) => { SaveSession(); MessageBox.Show("Session saved.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Information); };
+
+        // ── CENTER/RIGHT: Pitch, Tempo, Rate sliders ────────────────────────
+        int sliderX = 448;
+
+        var lblPitch = new Label { Text = "Pitch:", Location = new Point(sliderX, 8), Size = new Size(34, 16), ForeColor = Color.FromArgb(180, 200, 255), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _pitchSlider = new TrackBar
+        {
+            Location = new Point(sliderX + 36, 4),
+            Size = new Size(120, 28),
+            Minimum = -24,
+            Maximum = 24,
+            Value = 0,
+            TickFrequency = 6,
+            TickStyle = TickStyle.None,
+            BackColor = Color.FromArgb(20, 22, 34)
+        };
+        _pitchSlider.ValueChanged += PitchSlider_Changed;
+        _lblPitchVal = new Label { Text = "0 st", Location = new Point(sliderX + 158, 8), Size = new Size(38, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        sliderX += 204;
+        var lblTempo = new Label { Text = "Tempo:", Location = new Point(sliderX, 8), Size = new Size(44, 16), ForeColor = Color.FromArgb(255, 210, 130), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _tempoSlider = new TrackBar
+        {
+            Location = new Point(sliderX + 46, 4),
+            Size = new Size(120, 28),
+            Minimum = -50,
+            Maximum = 100,
+            Value = 0,
+            TickFrequency = 25,
+            TickStyle = TickStyle.None,
+            BackColor = Color.FromArgb(20, 22, 34)
+        };
+        _tempoSlider.ValueChanged += TempoSlider_Changed;
+        _lblTempoVal = new Label { Text = "0%", Location = new Point(sliderX + 168, 8), Size = new Size(38, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        sliderX += 210;
+        var lblRate = new Label { Text = "Rate:", Location = new Point(sliderX, 8), Size = new Size(34, 16), ForeColor = Color.FromArgb(200, 255, 200), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _rateSlider = new TrackBar
+        {
+            Location = new Point(sliderX + 36, 4),
+            Size = new Size(120, 28),
+            Minimum = -50,
+            Maximum = 100,
+            Value = 0,
+            TickFrequency = 25,
+            TickStyle = TickStyle.None,
+            BackColor = Color.FromArgb(20, 22, 34)
+        };
+        _rateSlider.ValueChanged += RateSlider_Changed;
+        _lblRateVal = new Label { Text = "x1.00", Location = new Point(sliderX + 158, 8), Size = new Size(44, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        sliderX += 210;
+        var btnReset = new Button
+        {
+            Text = "↺ Reset",
+            Location = new Point(sliderX, 4),
+            Size = new Size(62, 22),
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Color.Silver,
+            BackColor = Color.FromArgb(40, 40, 55),
+            Font = new Font("Microsoft Sans Serif", 7.5f)
+        };
+        btnReset.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 100);
+        btnReset.Click += (s, e) => ResetPitchSpeed();
+
+        // ── SECOND ROW: tip labels ─────────────────────────────────────────
+        var tipPitch = new Label { Text = "Pitch only (speed unchanged)", Location = new Point(484, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
+        var tipTempo = new Label { Text = "Speed only (pitch unchanged)", Location = new Point(688, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
+        var tipRate = new Label { Text = "Both pitch+speed (like tape)", Location = new Point(892, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
+
+        bar.Controls.AddRange(new Control[] {
+            lblPl, _cboPlaylistSelect, btnLoad, _btnSaveSession,
+            lblPitch, _pitchSlider, _lblPitchVal,
+            lblTempo, _tempoSlider, _lblTempoVal,
+            lblRate, _rateSlider, _lblRateVal,
+            btnReset, tipPitch, tipTempo, tipRate
+        });
+        return bar;
+    }
+
+    private void PitchSlider_Changed(object? sender, EventArgs e)
+    {
+        double semitones = _pitchSlider.Value;
+        AudioEngine.Instance.PitchSemiTones = semitones;
+        _lblPitchVal.Text = semitones == 0 ? "0 st" : (semitones > 0 ? $"+{semitones} st" : $"{semitones} st");
+    }
+
+    private void TempoSlider_Changed(object? sender, EventArgs e)
+    {
+        double pct = _tempoSlider.Value;
+        AudioEngine.Instance.TempoChange = pct;
+        _lblTempoVal.Text = pct == 0 ? "0%" : (pct > 0 ? $"+{pct}%" : $"{pct}%");
+    }
+
+    private void RateSlider_Changed(object? sender, EventArgs e)
+    {
+        double pct = _rateSlider.Value;
+        AudioEngine.Instance.RateChange = pct;
+        double mult = 1.0 + pct / 100.0;
+        _lblRateVal.Text = $"x{mult:F2}";
+    }
+
+    private void ResetPitchSpeed()
+    {
+        _pitchSlider.Value = 0;
+        _tempoSlider.Value = 0;
+        _rateSlider.Value = 0;
+        AudioEngine.Instance.PitchSemiTones = 0;
+        AudioEngine.Instance.TempoChange = 0;
+        AudioEngine.Instance.RateChange = 0;
+        _lblPitchVal.Text = "0 st";
+        _lblTempoVal.Text = "0%";
+        _lblRateVal.Text = "x1.00";
+    }
+
+    private void CboPlaylistSelect_Changed(object? sender, EventArgs e)
+    {
+        // Preview only – actual load happens via "Load" button
+    }
+
+    private void LoadSelectedPlaylist()
+    {
+        if (_cboPlaylistSelect.SelectedItem is Playlist pl)
+        {
+            _currentPlaylist = pl;
+            _currentIndex = -1;
+            PopulatePlaylistDisplayFields();
+            RefreshPlaylistView();
+            ShowNextTrack();
+        }
+    }
+
+    private void PopulatePlaylistCombo()
+    {
+        _cboPlaylistSelect.Items.Clear();
+        foreach (var pl in PlaylistDb?.GetAll() ?? System.Linq.Enumerable.Empty<Playlist>())
+            _cboPlaylistSelect.Items.Add(pl);
+        _cboPlaylistSelect.DisplayMember = "Name";
+    }
+
+    private void PopulatePlaylistDisplayFields()
+    {
+        if (_currentPlaylist == null) return;
+        foreach (var item in _currentPlaylist.Items)
+        {
+            var track = MusicDb?.GetById(item.TrackId);
+            if (track != null)
+            {
+                item.Artist = track.Artist;
+                item.Title = track.Title;
+                if (item.Duration == null && track.Duration > TimeSpan.Zero)
+                    item.Duration = track.Duration;
+            }
+        }
+    }
+
+    private static string AppDataPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GoonNet");
+
+    private string SessionFilePath => Path.Combine(AppDataPath, "studio_session.xml");
+
+    private void SaveSession()
+    {
+        try
+        {
+            var session = new StudioSession
+            {
+                PlaylistId = _currentPlaylist?.Id,
+                CurrentIndex = _currentIndex,
+                MainVolume = AudioEngine.Instance.MainVolume,
+                PreviewVolume = AudioEngine.Instance.PreviewVolume,
+                PitchSemiTones = AudioEngine.Instance.PitchSemiTones,
+                TempoChange = AudioEngine.Instance.TempoChange,
+                RateChange = AudioEngine.Instance.RateChange,
+                AutoPlay = _autoPlay,
+                TransitionSoundPath = _txtTransitionSound.Text,
+                FadeSeconds = (int)_nudFadeSecs.Value,
+                MicDeviceIndex = Math.Max(0, _cboMicDevice.SelectedIndex),
+                DuckingPercent = _duckingSlider.Value
+            };
+            Directory.CreateDirectory(AppDataPath);
+            var ser = new System.Xml.Serialization.XmlSerializer(typeof(StudioSession));
+            using var writer = new StreamWriter(SessionFilePath);
+            ser.Serialize(writer, session);
+        }
+        catch { /* non-critical */ }
+    }
+
+    private void LoadSession()
+    {
+        try
+        {
+            if (!File.Exists(SessionFilePath)) return;
+            var ser = new System.Xml.Serialization.XmlSerializer(typeof(StudioSession));
+            using var reader = new StreamReader(SessionFilePath);
+            if (ser.Deserialize(reader) is not StudioSession session) return;
+
+            // Restore sliders and engine settings
+            int volVal = (int)(session.MainVolume * 100);
+            _volumeSlider.Value = Math.Clamp(volVal, 0, 100);
+            _lblVolume.Text = volVal + "%";
+            AudioEngine.Instance.MainVolume = session.MainVolume;
+
+            _previewVolumeSlider.Value = Math.Clamp((int)(session.PreviewVolume * 100), 0, 100);
+            AudioEngine.Instance.PreviewVolume = session.PreviewVolume;
+
+            _pitchSlider.Value = Math.Clamp((int)session.PitchSemiTones, -24, 24);
+            PitchSlider_Changed(null, EventArgs.Empty);
+            _tempoSlider.Value = Math.Clamp((int)session.TempoChange, -50, 100);
+            TempoSlider_Changed(null, EventArgs.Empty);
+            _rateSlider.Value = Math.Clamp((int)session.RateChange, -50, 100);
+            RateSlider_Changed(null, EventArgs.Empty);
+
+            _autoPlay = session.AutoPlay;
+            _chkAutoPlay.Checked = _autoPlay;
+
+            if (!string.IsNullOrEmpty(session.TransitionSoundPath))
+                _txtTransitionSound.Text = session.TransitionSoundPath;
+
+            _nudFadeSecs.Value = Math.Clamp(session.FadeSeconds, (int)_nudFadeSecs.Minimum, (int)_nudFadeSecs.Maximum);
+
+            if (session.MicDeviceIndex >= 0 && session.MicDeviceIndex < _cboMicDevice.Items.Count)
+                _cboMicDevice.SelectedIndex = session.MicDeviceIndex;
+
+            _duckingSlider.Value = Math.Clamp(session.DuckingPercent, 0, 100);
+
+            // Restore playlist selection
+            if (session.PlaylistId.HasValue && PlaylistDb != null)
+            {
+                var pl = PlaylistDb.GetById(session.PlaylistId.Value);
+                if (pl != null)
+                {
+                    _currentPlaylist = pl;
+                    _currentIndex = session.CurrentIndex;
+                    if (_currentIndex >= (_currentPlaylist?.Items.Count ?? 0))
+                        _currentIndex = -1;
+
+                    // Select in combo
+                    foreach (var item in _cboPlaylistSelect.Items)
+                    {
+                        if (item is Playlist p && p.Id == pl.Id)
+                        {
+                            _cboPlaylistSelect.SelectedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        catch { /* non-critical */ }
     }
 
     private Panel BuildStudioToolsBar()
@@ -761,7 +1081,13 @@ public class StudioForm : Form
 
     private void StudioForm_Load(object? sender, EventArgs e)
     {
+        PopulatePlaylistCombo();
         LoadCurrentPlaylist();
+        LoadSession();
+        // If session restored a different playlist, refresh the view
+        PopulatePlaylistDisplayFields();
+        RefreshPlaylistView();
+        ShowNextTrack();
     }
 
     private void LoadCurrentPlaylist()
@@ -769,6 +1095,18 @@ public class StudioForm : Form
         _currentPlaylist = PlaylistDb?.GetCurrentPlaylist();
         if (_currentPlaylist == null)
             _currentPlaylist = new Playlist { Name = "Empty Playlist" };
+
+        // Sync combo selection
+        foreach (var item in _cboPlaylistSelect.Items)
+        {
+            if (item is Playlist p && p.Id == _currentPlaylist.Id)
+            {
+                _cboPlaylistSelect.SelectedItem = item;
+                break;
+            }
+        }
+
+        PopulatePlaylistDisplayFields();
         RefreshPlaylistView();
         ShowNextTrack();
     }
@@ -859,7 +1197,18 @@ public class StudioForm : Form
 
         if (!File.Exists(track.FullPath))
         {
-            MessageBox.Show($"File not found:\n{track.FullPath}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            // Mark as played and auto-skip instead of blocking
+            item.IsPlayed = true;
+            RefreshPlaylistView();
+            if (_autoPlay && _currentIndex + 1 < _currentPlaylist.Items.Count)
+            {
+                _currentIndex++;
+                PlayCurrent();
+            }
+            else
+            {
+                MessageBox.Show($"File not found:\n{track.FullPath}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             return;
         }
 
@@ -1035,6 +1384,7 @@ public class StudioForm : Form
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
+        SaveSession();
         _clockTimer.Stop();
 
         // Stop mic talkover if active

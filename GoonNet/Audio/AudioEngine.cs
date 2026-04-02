@@ -15,12 +15,16 @@ public sealed class AudioEngine : IDisposable
     private WaveOutEvent? _previewPlayer;
     private AudioFileReader? _mainReader;
     private AudioFileReader? _previewReader;
+    private SoundTouchSampleProvider? _mainPitchSpeed;
     private VolumeSampleProvider? _mainVolume;
     private VolumeSampleProvider? _previewVolume;
     private System.Windows.Forms.Timer? _positionTimer;
 
     private float _mainVolumeLevel = 1.0f;
     private float _previewVolumeLevel = 0.8f;
+    private double _pitchSemiTones = 0.0;
+    private double _tempoChangePercent = 0.0;
+    private double _rateChangePercent = 0.0;
     private bool _mainPaused;
     private bool _previewPaused;
     private bool _disposed;
@@ -70,6 +74,39 @@ public sealed class AudioEngine : IDisposable
         set => MainVolume = (float)Math.Pow(10.0, value / 20.0);
     }
 
+    /// <summary>Pitch shift in semitones applied to the main output. Range -24 to +24.</summary>
+    public double PitchSemiTones
+    {
+        get => _pitchSemiTones;
+        set
+        {
+            _pitchSemiTones = Math.Clamp(value, -24.0, 24.0);
+            if (_mainPitchSpeed != null) _mainPitchSpeed.PitchSemiTones = _pitchSemiTones;
+        }
+    }
+
+    /// <summary>Tempo change in percent. 0 = normal, +50 = 50% faster without pitch change.</summary>
+    public double TempoChange
+    {
+        get => _tempoChangePercent;
+        set
+        {
+            _tempoChangePercent = Math.Clamp(value, -70.0, 100.0);
+            if (_mainPitchSpeed != null) _mainPitchSpeed.TempoChange = _tempoChangePercent;
+        }
+    }
+
+    /// <summary>Rate change in percent. 0 = normal. Changes both speed and pitch together.</summary>
+    public double RateChange
+    {
+        get => _rateChangePercent;
+        set
+        {
+            _rateChangePercent = Math.Clamp(value, -70.0, 100.0);
+            if (_mainPitchSpeed != null) _mainPitchSpeed.RateChange = _rateChangePercent;
+        }
+    }
+
     public TimeSpan MainPosition => _mainReader?.CurrentTime ?? TimeSpan.Zero;
     public TimeSpan MainDuration => _mainReader?.TotalTime ?? TimeSpan.Zero;
 
@@ -100,7 +137,13 @@ public sealed class AudioEngine : IDisposable
                 _mainReader = new AudioFileReader(track.FullPath);
                 if (track.Start > TimeSpan.Zero && track.Start < _mainReader.TotalTime)
                     _mainReader.CurrentTime = track.Start;
-                MainSampleAggregator = new SampleAggregator(_mainReader.ToSampleProvider());
+                _mainPitchSpeed = new SoundTouchSampleProvider(_mainReader.ToSampleProvider())
+                {
+                    PitchSemiTones = _pitchSemiTones,
+                    TempoChange = _tempoChangePercent,
+                    RateChange = _rateChangePercent
+                };
+                MainSampleAggregator = new SampleAggregator(_mainPitchSpeed);
                 _mainVolume = new VolumeSampleProvider(MainSampleAggregator) { Volume = _mainVolumeLevel };
                 _mainPlayer = new WaveOutEvent { DesiredLatency = 200 };
                 _mainPlayer.Init(_mainVolume);
@@ -141,6 +184,7 @@ public sealed class AudioEngine : IDisposable
         _mainPlayer = null;
         _mainReader?.Dispose();
         _mainReader = null;
+        _mainPitchSpeed = null;
         _mainVolume = null;
         MainSampleAggregator = null;
         _mainPaused = false;
