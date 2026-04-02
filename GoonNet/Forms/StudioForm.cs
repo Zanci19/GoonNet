@@ -1068,7 +1068,10 @@ public class StudioForm : Form
         if (on)
         {
             int listeners = StreamManager.Instance.ListenerCount;
-            string url = $"http://localhost:{StreamManager.Instance.Port}/stream";
+            string host = StreamManager.Instance.IsNetworkWide
+                ? StreamManager.GetLocalIpAddress()
+                : "localhost";
+            string url = $"http://{host}:{StreamManager.Instance.Port}/stream";
             _lblStreamStatus.Text = $"🟢  Stream: ON  —  {listeners} listener{(listeners == 1 ? "" : "s")}  —  {url}";
             _lblStreamStatus.ForeColor = Color.FromArgb(100, 240, 100);
         }
