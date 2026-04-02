@@ -88,10 +88,14 @@ public sealed class StreamManager : IDisposable
     public void InjectMicSamples(float[] samples, int count, WaveFormat format)
     {
         if (!IsStreaming || _broadcast.ClientCount == 0) return;
-        _lastSeenFormat = format;
-        var copy = new float[count];
-        Array.Copy(samples, copy, count);
-        _queue.TryAdd((copy, count, format));
+        var normalized = NormalizeToPreferredFormat(samples, count, format);
+        if (normalized == null) return;
+
+        var (normalizedSamples, normalizedCount, normalizedFormat) = normalized.Value;
+        _lastSeenFormat = normalizedFormat;
+        var copy = new float[normalizedCount];
+        Array.Copy(normalizedSamples, copy, normalizedCount);
+        _queue.TryAdd((copy, normalizedCount, normalizedFormat));
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -101,10 +105,13 @@ public sealed class StreamManager : IDisposable
         if (IsStreaming) return;
         _cts = new CancellationTokenSource();
 
-        // Try binding to all interfaces first (allows LAN access); fall back to localhost.
-        // Note: http://+ requires admin rights on Windows without prior URL reservation.
+        // Try binding to all interfaces first (allows LAN access); then explicit local IP;
+        // finally fall back to localhost-only.
+        // Note: http://+ may require admin rights on Windows without prior URL reservation.
         bool networkWide = false;
         HttpListener? listener = null;
+        string bindMode = "localhost";
+        string localIp = GetLocalIpAddress();
         try
         {
             var hl = new HttpListener();
@@ -112,20 +119,37 @@ public sealed class StreamManager : IDisposable
             hl.Start();
             listener = hl;
             networkWide = true;
+            bindMode = "+";
         }
         catch
         {
             try
             {
+                if (localIp == "localhost")
+                    throw new InvalidOperationException("Could not determine a LAN IPv4 address.");
+
                 var hl = new HttpListener();
-                hl.Prefixes.Add($"http://localhost:{Port}/");
+                hl.Prefixes.Add($"http://{localIp}:{Port}/");
                 hl.Start();
                 listener = hl;
+                networkWide = true;
+                bindMode = "local-ip";
             }
-            catch (Exception ex)
+            catch
             {
-                StatusChanged?.Invoke(this, $"Failed to start stream: {ex.Message}");
-                return;
+                try
+                {
+                    var hl = new HttpListener();
+                    hl.Prefixes.Add($"http://localhost:{Port}/");
+                    hl.Start();
+                    listener = hl;
+                    bindMode = "localhost";
+                }
+                catch (Exception ex)
+                {
+                    StatusChanged?.Invoke(this, $"Failed to start stream: {ex.Message}");
+                    return;
+                }
             }
         }
 
@@ -139,9 +163,16 @@ public sealed class StreamManager : IDisposable
         _encodeThread = new Thread(EncodeLoop) { IsBackground = true, Name = "StreamEncode" };
         _encodeThread.Start();
 
-        string addr = networkWide ? GetLocalIpAddress() : "localhost";
-        StatusChanged?.Invoke(this, $"Streaming on http://{addr}:{Port}/stream" +
-            (networkWide ? $"  (also http://localhost:{Port}/stream)" : ""));
+        if (bindMode == "localhost")
+        {
+            StatusChanged?.Invoke(this, $"Streaming on http://localhost:{Port}/stream (localhost only)");
+            StatusChanged?.Invoke(this,
+                $"For LAN access on Windows, run once as admin: netsh http add urlacl url=http://+:{Port}/ user=Everyone");
+        }
+        else
+        {
+            StatusChanged?.Invoke(this, $"Streaming on http://{localIp}:{Port}/stream  (also http://localhost:{Port}/stream)");
+        }
     }
 
     public void Stop()
@@ -150,11 +181,46 @@ public sealed class StreamManager : IDisposable
         IsStreaming = false;
         _cts.Cancel();
         try { _listener?.Stop(); } catch { }
+        try { _listener?.Close(); } catch { }
+        _listener = null;
         _broadcast.CloseAll();
         _encoder?.Dispose();
         _encoder = null;
         _encoderFormat = null;
+        while (_queue.TryTake(out _)) { }
         StatusChanged?.Invoke(this, "Stream stopped");
+    }
+
+    /// <summary>
+    /// Normalizes microphone/input samples to match the preferred stream format and avoid
+    /// encoder reinitialization glitches (for example mono mic over stereo program audio).
+    /// </summary>
+    private (float[] samples, int count, WaveFormat format)? NormalizeToPreferredFormat(
+        float[] samples, int count, WaveFormat incomingFormat)
+    {
+        var preferred = _lastSeenFormat ?? _encoderFormat ?? _defaultFormat;
+
+        if (incomingFormat.SampleRate == preferred.SampleRate &&
+            incomingFormat.Channels == preferred.Channels)
+            return (samples, count, incomingFormat);
+
+        // Upmix mono -> stereo (duplicate channel) when sample rate matches.
+        if (incomingFormat.SampleRate == preferred.SampleRate &&
+            incomingFormat.Channels == 1 &&
+            preferred.Channels == 2)
+        {
+            var stereo = new float[count * 2];
+            for (int i = 0; i < count; i++)
+            {
+                float sVal = samples[i];
+                stereo[i * 2] = sVal;
+                stereo[i * 2 + 1] = sVal;
+            }
+            return (stereo, stereo.Length, new WaveFormat(preferred.SampleRate, preferred.Channels));
+        }
+
+        // Unsupported conversion (typically sample-rate mismatch): skip to avoid stream corruption.
+        return null;
     }
 
     /// <summary>Returns the machine's best local IPv4 address for LAN access.</summary>
