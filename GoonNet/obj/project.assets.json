@@ -176,6 +176,19 @@
           }
         }
       },
+      "SoundTouch.Net/2.3.2": {
+        "type": "package",
+        "compile": {
+          "lib/netcoreapp2.1/SoundTouch.Net.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/netcoreapp2.1/SoundTouch.Net.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
       "System.Security.AccessControl/4.7.0": {
         "type": "package",
         "dependencies": {
@@ -416,6 +429,37 @@
         "naudio.winmm.nuspec"
       ]
     },
+    "SoundTouch.Net/2.3.2": {
+      "sha512": "5A29Pll/n4kEEPvCD5DFot3MJG+VgiaRG6LbNQVkF94VerC1b5iZtJKfdLQXZPFrl3LiVbKm3txKBe5/pbv5rw==",
+      "type": "package",
+      "path": "soundtouch.net/2.3.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE/LICENSE",
+        "lib/net45/SoundTouch.Net.dll",
+        "lib/net45/SoundTouch.Net.pdb",
+        "lib/net45/SoundTouch.Net.xml",
+        "lib/net461/SoundTouch.Net.dll",
+        "lib/net461/SoundTouch.Net.pdb",
+        "lib/net461/SoundTouch.Net.xml",
+        "lib/netcoreapp2.1/SoundTouch.Net.dll",
+        "lib/netcoreapp2.1/SoundTouch.Net.pdb",
+        "lib/netcoreapp2.1/SoundTouch.Net.xml",
+        "lib/netstandard1.1/SoundTouch.Net.dll",
+        "lib/netstandard1.1/SoundTouch.Net.pdb",
+        "lib/netstandard1.1/SoundTouch.Net.xml",
+        "lib/netstandard2.0/SoundTouch.Net.dll",
+        "lib/netstandard2.0/SoundTouch.Net.pdb",
+        "lib/netstandard2.0/SoundTouch.Net.xml",
+        "lib/netstandard2.1/SoundTouch.Net.dll",
+        "lib/netstandard2.1/SoundTouch.Net.pdb",
+        "lib/netstandard2.1/SoundTouch.Net.xml",
+        "logo.png",
+        "soundtouch.net.2.3.2.nupkg.sha512",
+        "soundtouch.net.nuspec"
+      ]
+    },
     "System.Security.AccessControl/4.7.0": {
       "sha512": "JECvTt5aFF3WT3gHpfofL2MNNP6v84sxtXxpqhLBCcDRzqsPBmHhQ6shv4DwwN2tRlzsUxtb3G9M3763rbXKDg==",
       "type": "package",
@@ -520,7 +564,8 @@
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
       "NAudio >= 2.2.1",
-      "NAudio.Lame >= 2.1.0"
+      "NAudio.Lame >= 2.1.0",
+      "SoundTouch.Net >= 2.3.2"
     ]
   },
   "packageFolders": {
@@ -573,6 +618,10 @@
           "NAudio.Lame": {
             "target": "Package",
             "version": "[2.1.0, )"
+          },
+          "SoundTouch.Net": {
+            "target": "Package",
+            "version": "[2.3.2, )"
           }
         },
         "imports": [
