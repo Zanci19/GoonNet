@@ -115,8 +115,8 @@ public class DetailedLogForm : Form
         var entry = new DetailedLogEntry(DateTime.Now, category, message);
         _logQueue.Enqueue(entry);
 
-        // Keep queue bounded to 5000 entries
-        while (_logQueue.Count > 5000)
+        // Keep queue bounded: remove oldest entry when capacity is reached
+        if (_logQueue.Count > 5000)
             _logQueue.TryDequeue(out _);
 
         _totalCount++;

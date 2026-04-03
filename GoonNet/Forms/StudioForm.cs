@@ -1638,9 +1638,18 @@ public class StudioForm : Form
             _lblReminder.Text = $"  🔔 {r.Message}";
             _lblReminder.Size = new Size(400, 20);
             _lblReminder.Visible = true;
-            // Auto-hide after 30 seconds
+
+            // Auto-hide after 30 seconds using a one-shot timer
             var hideTimer = new System.Windows.Forms.Timer { Interval = 30000 };
-            hideTimer.Tick += (s, e2) => { _lblReminder.Visible = false; hideTimer.Stop(); hideTimer.Dispose(); };
+            EventHandler? tickHandler = null;
+            tickHandler = (s2, e2) =>
+            {
+                _lblReminder.Visible = false;
+                hideTimer.Stop();
+                hideTimer.Tick -= tickHandler;
+                hideTimer.Dispose();
+            };
+            hideTimer.Tick += tickHandler;
             hideTimer.Start();
 
             MessageBox.Show($"REMINDER:\n\n{r.Message}", "GoonNet Reminder",

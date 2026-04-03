@@ -289,7 +289,7 @@ public class RecorderForm : Form
             _waveIn.RecordingStopped += WaveIn_RecordingStopped;
             _waveIn.StartRecording();
             _isRecording = true;
-            _timerSeconds = 0;
+            _elapsedSeconds = 0;  // Reset elapsed counter for each new recording
 
             _lblStatus.Text = "● RECORDING";
             _lblStatus.ForeColor = Color.Red;

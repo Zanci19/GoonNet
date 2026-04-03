@@ -316,13 +316,26 @@ public class JinglePanelForm : Form
 
             case JingleButtonActionType.ExternalCommand:
                 if (!string.IsNullOrWhiteSpace(cfg.Command))
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    // Only allow execution of configured commands — warn user if the command
+                    // was not set by a trusted administrator via the configuration UI.
+                    var parts = cfg.Command.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 0)
                     {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c {cfg.Command}",
-                        CreateNoWindow = true,
-                        UseShellExecute = false
-                    });
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = parts[0],
+                            Arguments = parts.Length > 1 ? parts[1] : string.Empty,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        try { System.Diagnostics.Process.Start(psi); }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Could not start command:\n{ex.Message}", "Jingle Panel", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                }
                 break;
 
             case JingleButtonActionType.RDS:
