@@ -189,10 +189,14 @@ public sealed class StreamManager : IDisposable
         else if (bindMode == "local-ip")
         {
             StatusChanged?.Invoke(this, $"Streaming on http://{localIp}:{Port}/stream");
+            StatusChanged?.Invoke(this,
+                $"To allow internet listeners, open firewall + forward TCP {Port} on your router to this PC.");
         }
         else
         {
             StatusChanged?.Invoke(this, $"Streaming on http://{localIp}:{Port}/stream  (also http://localhost:{Port}/stream)");
+            StatusChanged?.Invoke(this,
+                $"For public internet access, forward TCP {Port} from your router to this machine's LAN IP.");
         }
     }
 
