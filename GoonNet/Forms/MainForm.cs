@@ -151,7 +151,12 @@ public class MainForm : Form
             GripStyle = ToolStripGripStyle.Hidden,
             RenderMode = ToolStripRenderMode.System,
             BackColor = Color.FromArgb(30, 60, 100),   // dark blue
-            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold)
+            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold),
+            Dock = DockStyle.Top,
+            LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow,
+            AutoSize = false,
+            Height = 28,
+            Padding = new Padding(3, 2, 3, 2)
         };
 
         ToolStripButton NavBtn(string text, string tip, Action action)
@@ -161,7 +166,9 @@ public class MainForm : Form
                 DisplayStyle = ToolStripItemDisplayStyle.Text,
                 ToolTipText = tip,
                 ForeColor = Color.FromArgb(200, 230, 255),
-                Margin = new Padding(1, 0, 1, 0)
+                Margin = new Padding(1, 0, 1, 0),
+                Padding = new Padding(3, 1, 3, 1),
+                AutoSize = true
             };
             b.Click += (s, e) => action();
             return b;
@@ -191,7 +198,12 @@ public class MainForm : Form
             GripStyle = ToolStripGripStyle.Hidden,
             RenderMode = ToolStripRenderMode.System,
             BackColor = Color.FromArgb(50, 30, 30),    // dark maroon/red
-            Font = new Font("Microsoft Sans Serif", 8f)
+            Font = new Font("Microsoft Sans Serif", 8f),
+            Dock = DockStyle.Top,
+            LayoutStyle = ToolStripLayoutStyle.HorizontalStackWithOverflow,
+            AutoSize = false,
+            Height = 26,
+            Padding = new Padding(3, 1, 3, 1)
         };
 
         ToolStripButton OpsBtn(string text, string tip, Color fg, Action action)
@@ -201,7 +213,9 @@ public class MainForm : Form
                 DisplayStyle = ToolStripItemDisplayStyle.Text,
                 ToolTipText = tip,
                 ForeColor = fg,
-                Margin = new Padding(1, 0, 1, 0)
+                Margin = new Padding(1, 0, 1, 0),
+                Padding = new Padding(3, 1, 3, 1),
+                AutoSize = true
             };
             b.Click += (s, e) => action();
             return b;
