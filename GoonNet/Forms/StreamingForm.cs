@@ -18,6 +18,11 @@ public class StreamingForm : Form
     private ListBox _lbLog = null!;
     private System.Windows.Forms.Timer _updateTimer = null!;
 
+    // Stored handler references so they can be unsubscribed when the form closes
+    private EventHandler<string>? _statusChangedHandler;
+    private EventHandler<StreamClientEventArgs>? _clientConnectedHandler;
+    private EventHandler<StreamClientEventArgs>? _clientDisconnectedHandler;
+
     public StreamingForm()
     {
         InitializeComponent();
@@ -185,7 +190,7 @@ public class StreamingForm : Form
 
     private void SubscribeToManager()
     {
-        StreamManager.Instance.StatusChanged += (s, msg) =>
+        _statusChangedHandler = (s, msg) =>
         {
             if (!IsHandleCreated) return;
             BeginInvoke(() =>
@@ -195,7 +200,7 @@ public class StreamingForm : Form
             });
         };
 
-        StreamManager.Instance.ClientConnected += (s, e) =>
+        _clientConnectedHandler = (s, e) =>
         {
             if (!IsHandleCreated) return;
             BeginInvoke(() =>
@@ -205,7 +210,7 @@ public class StreamingForm : Form
             });
         };
 
-        StreamManager.Instance.ClientDisconnected += (s, e) =>
+        _clientDisconnectedHandler = (s, e) =>
         {
             if (!IsHandleCreated) return;
             BeginInvoke(() =>
@@ -214,6 +219,10 @@ public class StreamingForm : Form
                 RefreshStatus();
             });
         };
+
+        StreamManager.Instance.StatusChanged += _statusChangedHandler;
+        StreamManager.Instance.ClientConnected += _clientConnectedHandler;
+        StreamManager.Instance.ClientDisconnected += _clientDisconnectedHandler;
     }
 
     private void BtnStartStop_Click(object? sender, EventArgs e)
@@ -287,6 +296,10 @@ public class StreamingForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         _updateTimer.Stop();
+        _updateTimer.Dispose();
+        StreamManager.Instance.StatusChanged -= _statusChangedHandler;
+        StreamManager.Instance.ClientConnected -= _clientConnectedHandler;
+        StreamManager.Instance.ClientDisconnected -= _clientDisconnectedHandler;
         base.OnFormClosed(e);
     }
 }
