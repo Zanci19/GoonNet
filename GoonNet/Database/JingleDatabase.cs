@@ -19,4 +19,14 @@ public class JingleDatabase : DatabaseBase<Jingle>
 
     public IEnumerable<Jingle> GetByPriority(int priority)
         => _items.Where(j => j.Priority == priority);
+
+    public bool IncrementPlayCount(Guid id)
+    {
+        var j = GetById(id);
+        if (j == null) return false;
+        j.PlayCount++;
+        j.LastPlayed = DateTime.Now;
+        Update(j);
+        return true;
+    }
 }

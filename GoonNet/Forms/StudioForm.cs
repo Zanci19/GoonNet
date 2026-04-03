@@ -34,9 +34,15 @@ public class StudioForm : Form
     private Button _btnNext = null!;
     private Button _btnCue = null!;
     private Button _btnFadeOut = null!;
+    private Button _btnPanic = null!;
     private TrackBar _volumeSlider = null!;
     private Label _lblVolume = null!;
     private CheckBox _chkAutoPlay = null!;
+
+    // Reminder
+    private System.Windows.Forms.Timer _reminderTimer = null!;
+    private Label _lblReminder = null!;
+    private System.Collections.Generic.Queue<ReminderEntry> _reminders = new();
 
     // Up Next panel
     private Label _lblNextArtist = null!;
@@ -99,8 +105,17 @@ public class StudioForm : Form
         InitializeComponent();
         ConnectAudioEngine();
         _clockTimer = new System.Windows.Forms.Timer { Interval = 500 };
-        _clockTimer.Tick += (s, e) => _lblClock.Text = DateTime.Now.ToString("HH:mm:ss");
+        _clockTimer.Tick += (s, e) =>
+        {
+            _lblClock.Text = DateTime.Now.ToString("HH:mm:ss");
+            CheckReminders();
+        };
         _clockTimer.Start();
+
+        _reminderTimer = new System.Windows.Forms.Timer { Interval = 60000 };
+        _reminderTimer.Tick += (s, e) => CheckReminders();
+        _reminderTimer.Start();
+
         Load += StudioForm_Load;
     }
 
@@ -209,7 +224,7 @@ public class StudioForm : Form
         {
             Text = "CONTROLS",
             Location = new Point(376, 4),
-            Size = new Size(222, 186),
+            Size = new Size(222, 196),
             Anchor = AnchorStyles.Top | AnchorStyles.Left,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
@@ -245,10 +260,22 @@ public class StudioForm : Form
         _btnFadeOut = new Button { Text = "FADE OUT", Location = new Point(8, 96), Size = new Size(200, 24), FlatStyle = FlatStyle.System };
         _btnFadeOut.Click += (s, e) => AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromSeconds(5));
 
-        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 130), Size = new Size(52, 16) };
+        _btnPanic = new Button
+        {
+            Text = "⚡ PANIC",
+            Location = new Point(8, 126),
+            Size = new Size(200, 24),
+            BackColor = Color.FromArgb(200, 50, 50),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.System,
+            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold)
+        };
+        _btnPanic.Click += BtnPanic_Click;
+
+        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 156), Size = new Size(52, 16) };
         _volumeSlider = new TrackBar
         {
-            Location = new Point(62, 124),
+            Location = new Point(62, 150),
             Size = new Size(118, 30),
             Minimum = 0,
             Maximum = 100,
@@ -260,12 +287,29 @@ public class StudioForm : Form
             AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f;
             _lblVolume.Text = _volumeSlider.Value + "%";
         };
-        _lblVolume = new Label { Text = "85%", Location = new Point(183, 130), Size = new Size(30, 16) };
+        _lblVolume = new Label { Text = "85%", Location = new Point(183, 156), Size = new Size(30, 16) };
 
-        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 160), Checked = true };
+        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 180), Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
 
-        ctrlPanel.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, lblVol, _volumeSlider, _lblVolume, _chkAutoPlay });
+        var btnReminder = new Button { Text = "🔔 Reminder...", Location = new Point(100, 180), Size = new Size(112, 18), FlatStyle = FlatStyle.System, Font = new Font("Microsoft Sans Serif", 7f) };
+        btnReminder.Click += BtnReminder_Click;
+
+        ctrlPanel.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, _btnPanic, lblVol, _volumeSlider, _lblVolume, _chkAutoPlay, btnReminder });
+
+        // Reminder display label (in the top panel, below ctrlPanel area)
+        _lblReminder = new Label
+        {
+            Location = new Point(376, 196),
+            Size = new Size(400, 0),
+            ForeColor = Color.FromArgb(255, 220, 80),
+            BackColor = Color.FromArgb(60, 50, 10),
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Visible = false,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        topPanel.Controls.Add(_lblReminder);
 
         // ---- RIGHT PANEL (UP NEXT + PREVIEW + CLOCK, grows horizontally) ----
         var rightPanel = new Panel
@@ -1509,6 +1553,152 @@ public class StudioForm : Form
         if (keyData == (Keys.Control | Keys.Right)) { BtnNext_Click(this, EventArgs.Empty); return true; }
         if (keyData == (Keys.Control | Keys.F)) { BtnFadeAndNext_Click(this, EventArgs.Empty); return true; }
         if (keyData == Keys.F8) { BtnTalkover_Click(this, EventArgs.Empty); return true; }
+        if (keyData == (Keys.Control | Keys.Shift | Keys.P)) { BtnPanic_Click(this, EventArgs.Empty); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
+
+    // ── PANIC ────────────────────────────────────────────────────────────────
+
+    private void BtnPanic_Click(object? sender, EventArgs e)
+    {
+        var res = MessageBox.Show(
+            "PANIC: Stop all audio immediately and reset the playback engine?\n\n" +
+            "Use this if audio is stuck, distorted, or otherwise unrecoverable.",
+            "PANIC – Safe Restart",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (res != DialogResult.Yes) return;
+
+        try
+        {
+            // Stop all audio
+            if (MicrophoneManager.Instance.IsActive) MicrophoneManager.Instance.StopTalkover();
+            AudioEngine.Instance.Stop(AudioDeviceType.Main);
+            AudioEngine.Instance.Stop(AudioDeviceType.Preview);
+
+            // Dispose and recreate audio engine resources
+            AudioEngine.Instance.Dispose();
+
+            // Reset UI state
+            _btnPlayPause.Text = "▶ PLAY";
+            _btnPlayPause.BackColor = Color.FromArgb(200, 255, 200);
+            _progressBar.Value = 0;
+            _lblElapsed.Text = "0:00";
+            _lblRemaining.Text = "-0:00";
+            _lblArtist.Text = "--- PANIC RESET ---";
+            _lblTitle.Text = "Audio engine restarted";
+            _lblOnAir.Text = "OFF AIR";
+            _lblOnAir.BackColor = Color.FromArgb(70, 20, 20);
+            _micLevelBar.Value = 0;
+
+            // Reconnect engine events
+            ConnectAudioEngine();
+
+            MessageBox.Show("Audio engine has been safely restarted.", "PANIC – Done",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            ErrorLog.Instance.Add("StudioForm.Panic", ex.Message);
+            MessageBox.Show($"Panic reset encountered an error:\n{ex.Message}",
+                "PANIC", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    // ── REMINDER ─────────────────────────────────────────────────────────────
+
+    private void BtnReminder_Click(object? sender, EventArgs e)
+    {
+        using var dlg = new ReminderDialog();
+        if (dlg.ShowDialog(this) == DialogResult.OK && dlg.ReminderEntry != null)
+        {
+            _reminders.Enqueue(dlg.ReminderEntry);
+            MessageBox.Show($"Reminder set for {dlg.ReminderEntry.TriggerTime:HH:mm}: {dlg.ReminderEntry.Message}",
+                "Reminder Set", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    private void CheckReminders()
+    {
+        if (_reminders.Count == 0) return;
+        var now = DateTime.Now;
+        while (_reminders.Count > 0 && _reminders.Peek().TriggerTime <= now)
+        {
+            var r = _reminders.Dequeue();
+            ShowReminderAlert(r);
+        }
+    }
+
+    private void ShowReminderAlert(ReminderEntry r)
+    {
+        if (!IsHandleCreated) return;
+        BeginInvoke(() =>
+        {
+            _lblReminder.Text = $"  🔔 {r.Message}";
+            _lblReminder.Size = new Size(400, 20);
+            _lblReminder.Visible = true;
+
+            // Auto-hide after 30 seconds using a one-shot timer
+            var hideTimer = new System.Windows.Forms.Timer { Interval = 30000 };
+            EventHandler? tickHandler = null;
+            tickHandler = (s2, e2) =>
+            {
+                _lblReminder.Visible = false;
+                hideTimer.Stop();
+                hideTimer.Tick -= tickHandler;
+                hideTimer.Dispose();
+            };
+            hideTimer.Tick += tickHandler;
+            hideTimer.Start();
+
+            MessageBox.Show($"REMINDER:\n\n{r.Message}", "GoonNet Reminder",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        });
+    }
 }
+
+// ── Reminder support types ────────────────────────────────────────────────────
+
+public class ReminderEntry
+{
+    public DateTime TriggerTime { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+internal class ReminderDialog : Form
+{
+    public ReminderEntry? ReminderEntry { get; private set; }
+
+    private DateTimePicker _dtpTime = null!;
+    private TextBox _txtMessage = null!;
+
+    public ReminderDialog()
+    {
+        Text = "Set Reminder";
+        Size = new Size(380, 200);
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        StartPosition = FormStartPosition.CenterParent;
+        MaximizeBox = false;
+
+        Controls.Add(new Label { Text = "Reminder time:", Location = new Point(10, 14), Size = new Size(100, 18) });
+        _dtpTime = new DateTimePicker { Location = new Point(116, 10), Size = new Size(230, 22), Format = DateTimePickerFormat.Custom, CustomFormat = "HH:mm  dd/MM/yyyy" };
+        _dtpTime.Value = DateTime.Now.AddMinutes(15);
+        Controls.Add(_dtpTime);
+
+        Controls.Add(new Label { Text = "Message:", Location = new Point(10, 46), Size = new Size(100, 18) });
+        _txtMessage = new TextBox { Location = new Point(116, 42), Size = new Size(230, 60), Multiline = true };
+        Controls.Add(_txtMessage);
+
+        var btnOk = new Button { Text = "Set Reminder", DialogResult = DialogResult.OK, Location = new Point(80, 118), Size = new Size(110, 28), FlatStyle = FlatStyle.System };
+        btnOk.Click += (s, e) =>
+        {
+            if (string.IsNullOrWhiteSpace(_txtMessage.Text)) { DialogResult = DialogResult.None; return; }
+            ReminderEntry = new ReminderEntry { TriggerTime = _dtpTime.Value, Message = _txtMessage.Text.Trim() };
+        };
+        var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(202, 118), Size = new Size(80, 28), FlatStyle = FlatStyle.System };
+        Controls.Add(btnOk); Controls.Add(btnCancel);
+        AcceptButton = btnOk; CancelButton = btnCancel;
+    }
+}
+
