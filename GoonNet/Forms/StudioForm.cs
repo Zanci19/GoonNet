@@ -135,9 +135,23 @@ public class StudioForm : Form
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 196,
+            Height = 204,
             BackColor = SystemColors.Control
         };
+
+        var topLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 1,
+            Padding = new Padding(8, 4, 8, 4),
+            BackColor = SystemColors.Control
+        };
+        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 360));
+        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260));
+        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190));
+        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        topLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
         // ---- Clock (top-right of form) ----
         _lblClock = new Label
@@ -154,9 +168,7 @@ public class StudioForm : Form
         var nowPanel = new GroupBox
         {
             Text = "NOW PLAYING",
-            Location = new Point(8, 4),
-            Size = new Size(360, 186),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+            Dock = DockStyle.Fill,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
@@ -222,9 +234,7 @@ public class StudioForm : Form
         var ctrlPanel = new GroupBox
         {
             Text = "CONTROLS",
-            Location = new Point(376, 4),
-            Size = new Size(260, 186),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+            Dock = DockStyle.Fill,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
@@ -297,8 +307,7 @@ public class StudioForm : Form
 
         var sliderPanel = new Panel
         {
-            Location = new Point(264, 18),
-            Size = new Size(190, 166),
+            Dock = DockStyle.Fill,
             BackColor = Color.FromArgb(20, 22, 34),
             BorderStyle = BorderStyle.FixedSingle
         };
@@ -341,9 +350,7 @@ public class StudioForm : Form
         // ---- RIGHT PANEL (UP NEXT + PREVIEW + CLOCK, grows horizontally) ----
         var rightPanel = new Panel
         {
-            Location = new Point(644, 4),
-            Size = new Size(402, 186),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Dock = DockStyle.Fill,
             BackColor = SystemColors.Control
         };
 
@@ -396,7 +403,22 @@ public class StudioForm : Form
         previewPanel.Controls.AddRange(new Control[] { _lblPreviewTrack, _btnPreviewPlay, _btnPreviewStop, lblPreviewVol, _previewVolumeSlider });
 
         rightPanel.Controls.AddRange(new Control[] { _lblClock, _lblOnAir, nextPanel, previewPanel });
-        topPanel.Controls.AddRange(new Control[] { nowPanel, ctrlPanel, sliderPanel, rightPanel });
+        rightPanel.SizeChanged += (s, e) =>
+        {
+            _lblClock.Location = new Point(Math.Max(0, rightPanel.ClientSize.Width - _lblClock.Width - 2), 0);
+            _lblOnAir.Location = new Point(Math.Max(6, rightPanel.ClientSize.Width - _lblClock.Width - _lblOnAir.Width - 12), 10);
+            nextPanel.Width = rightPanel.ClientSize.Width;
+            previewPanel.Width = rightPanel.ClientSize.Width;
+            _lblNextArtist.Width = Math.Max(180, nextPanel.ClientSize.Width - 60);
+            _lblNextTitle.Width = Math.Max(180, nextPanel.ClientSize.Width - 60);
+            _lblPreviewTrack.Width = Math.Max(180, previewPanel.ClientSize.Width - 56);
+        };
+
+        topLayout.Controls.Add(nowPanel, 0, 0);
+        topLayout.Controls.Add(ctrlPanel, 1, 0);
+        topLayout.Controls.Add(sliderPanel, 2, 0);
+        topLayout.Controls.Add(rightPanel, 3, 0);
+        topPanel.Controls.Add(topLayout);
 
         // ══════════════════════════════════════════════════════════════════════
         // STREAMING STATUS BAR
@@ -453,7 +475,7 @@ public class StudioForm : Form
         {
             Text = "SPECTRUM ANALYZER",
             Dock = DockStyle.Top,
-            Height = 280,
+            Height = 200,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             BackColor = Color.Black,
             ForeColor = Color.FromArgb(0, 200, 0)
@@ -482,13 +504,13 @@ public class StudioForm : Form
 
         _lvPlaylist = new ListView
         {
-            Location = new Point(4, 18),
+            Dock = DockStyle.Fill,
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
             BorderStyle = BorderStyle.Fixed3D,
             Font = new Font("Microsoft Sans Serif", 8f),
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            Margin = new Padding(4, 18, 4, 4)
         };
         _lvPlaylist.Columns.Add("#", 32);
         _lvPlaylist.Columns.Add("Artist", 170);
@@ -499,13 +521,6 @@ public class StudioForm : Form
         _lvPlaylist.DoubleClick += LvPlaylist_DoubleClick;
 
         playlistPanel.Controls.Add(_lvPlaylist);
-
-        // Wire up SizeChanged to keep inner panels sized correctly
-        SizeChanged += (s, e) =>
-        {
-            rightPanel.Width = ClientSize.Width - 652;
-            _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
-        };
 
         Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, _studioToolsBar, spectrumPanel, playlistPanel });
     }
