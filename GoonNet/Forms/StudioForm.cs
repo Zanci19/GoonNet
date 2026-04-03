@@ -94,6 +94,7 @@ public class StudioForm : Form
     private bool _playingTransition;
     private MusicTrack? _transitionTrack;
     private TimeSpan? _pendingTransitionFadeIn;
+    private bool _manualJump;
 
     private System.Windows.Forms.Timer _clockTimer = null!;
 
@@ -1072,7 +1073,8 @@ public class StudioForm : Form
                 else
                 {
                     _pendingTransitionFadeIn = null;
-                    if (_autoPlay) PlayNext();
+                    if (_autoPlay && !_manualJump) PlayNext();
+                    _manualJump = false;
                 }
             });
         };
@@ -1335,15 +1337,23 @@ public class StudioForm : Form
 
     private void EnsureDisplayFields(PlaylistItem item)
     {
-        if (!string.IsNullOrWhiteSpace(item.Artist) && !string.IsNullOrWhiteSpace(item.Title))
+        bool needsArtistTitle = string.IsNullOrWhiteSpace(item.Artist) || string.IsNullOrWhiteSpace(item.Title);
+        bool needsDuration = !item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero;
+
+        if (!needsArtistTitle && !needsDuration)
             return;
 
         var track = MusicDb?.GetById(item.TrackId);
         if (track == null) return;
-        item.Artist = track.Artist;
-        item.Title = track.Title;
-        if (!item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero)
-            item.Duration = track.Duration > TimeSpan.Zero ? track.Duration : null;
+
+        if (needsArtistTitle)
+        {
+            item.Artist = track.Artist;
+            item.Title = track.Title;
+        }
+
+        if (needsDuration && track.Duration > TimeSpan.Zero)
+            item.Duration = track.Duration;
     }
 
     private void PlayNext()
@@ -1370,6 +1380,7 @@ public class StudioForm : Form
     private void BtnNext_Click(object? sender, EventArgs e)
     {
         MarkCurrentPlayed();
+        _manualJump = true;
         AudioEngine.Instance.Stop();
         PlayNext();
     }
@@ -1515,6 +1526,7 @@ public class StudioForm : Form
         if (_lvPlaylist.SelectedItems.Count == 0) return;
         int idx = (int)(_lvPlaylist.SelectedItems[0].Tag ?? 0);
         MarkCurrentPlayed();
+        _manualJump = true;
         AudioEngine.Instance.Stop();
         _currentIndex = idx;
         PlayCurrent();

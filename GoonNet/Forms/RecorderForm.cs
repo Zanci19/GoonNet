@@ -83,28 +83,24 @@ public class RecorderForm : Form
         Font = new Font("Microsoft Sans Serif", 8f);
 
         // ── Top: device + controls ──────────────────────────────────────────
-        var topPanel = new Panel { Dock = DockStyle.Top, Height = 130, BackColor = Color.FromArgb(40, 45, 60) };
+        var topPanel = new Panel { Dock = DockStyle.Top, Height = 130, BackColor = SystemColors.Control };
 
-        var lblDev = new Label { Text = "Input device:", ForeColor = Color.Silver, Location = new Point(8, 10), Size = new Size(80, 16) };
+        var lblDev = new Label { Text = "Input device:", Location = new Point(8, 10), Size = new Size(80, 16) };
         _cboInputDevice = new ComboBox
         {
             Location = new Point(92, 7),
             Size = new Size(260, 20),
             DropDownStyle = ComboBoxStyle.DropDownList,
-            BackColor = Color.FromArgb(55, 60, 80),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Popup
+            FlatStyle = FlatStyle.System
         };
 
-        var lblBit = new Label { Text = "Sample rate:", ForeColor = Color.Silver, Location = new Point(362, 10), Size = new Size(78, 16) };
+        var lblBit = new Label { Text = "Sample rate:", Location = new Point(362, 10), Size = new Size(78, 16) };
         _cboBitrate = new ComboBox
         {
             Location = new Point(442, 7),
             Size = new Size(120, 20),
             DropDownStyle = ComboBoxStyle.DropDownList,
-            BackColor = Color.FromArgb(55, 60, 80),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Popup
+            FlatStyle = FlatStyle.System
         };
         _cboBitrate.Items.AddRange(new object[] { "44100 Hz / 16-bit", "22050 Hz / 16-bit", "8000 Hz / 16-bit" });
         _cboBitrate.SelectedIndex = 0;
@@ -113,39 +109,38 @@ public class RecorderForm : Form
         _btnRecord = MakeBtn("⏺ RECORD", Color.FromArgb(180, 30, 30), Color.White, new Point(8, 36), new Size(110, 36));
         _btnRecord.Click += BtnRecord_Click;
 
-        _btnStop = MakeBtn("■ STOP", Color.FromArgb(60, 60, 80), Color.Silver, new Point(124, 36), new Size(80, 36));
+        _btnStop = MakeBtn("■ STOP", SystemColors.Control, SystemColors.ControlText, new Point(124, 36), new Size(80, 36));
         _btnStop.Click += BtnStop_Click;
 
         _btnPlay = MakeBtn("▶ PLAY", Color.FromArgb(30, 100, 40), Color.White, new Point(212, 36), new Size(80, 36));
         _btnPlay.Click += BtnPlay_Click;
 
-        _btnPause = MakeBtn("⏸ PAUSE", Color.FromArgb(80, 80, 30), Color.Silver, new Point(298, 36), new Size(80, 36));
+        _btnPause = MakeBtn("⏸ PAUSE", SystemColors.Control, SystemColors.ControlText, new Point(298, 36), new Size(80, 36));
         _btnPause.Click += BtnPause_Click;
 
-        _btnOpen = MakeBtn("📂 OPEN", Color.FromArgb(40, 50, 70), Color.Silver, new Point(390, 36), new Size(80, 36));
+        _btnOpen = MakeBtn("📂 OPEN", SystemColors.Control, SystemColors.ControlText, new Point(390, 36), new Size(80, 36));
         _btnOpen.Click += BtnOpen_Click;
 
-        _btnSave = MakeBtn("💾 SAVE AS", Color.FromArgb(40, 50, 70), Color.Silver, new Point(478, 36), new Size(90, 36));
+        _btnSave = MakeBtn("💾 SAVE AS", SystemColors.Control, SystemColors.ControlText, new Point(478, 36), new Size(90, 36));
         _btnSave.Click += BtnSave_Click;
 
         // Level meter
-        var lblLvl = new Label { Text = "Level:", ForeColor = Color.Silver, Location = new Point(8, 80), Size = new Size(44, 16) };
+        var lblLvl = new Label { Text = "Level:", Location = new Point(8, 80), Size = new Size(44, 16) };
         _pbLevel = new ProgressBar { Location = new Point(56, 80), Size = new Size(300, 16), Minimum = 0, Maximum = 100, Style = ProgressBarStyle.Continuous };
 
         // Status
         _lblStatus = new Label
         {
             Text = "Ready",
-            ForeColor = Color.FromArgb(180, 200, 255),
             Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold),
             Location = new Point(370, 80),
             Size = new Size(200, 20)
         };
 
-        _lblDuration = new Label { Text = "0:00:00", ForeColor = Color.Silver, Location = new Point(580, 80), Size = new Size(100, 20) };
+        _lblDuration = new Label { Text = "0:00:00", Location = new Point(580, 80), Size = new Size(100, 20) };
 
         // Playback progress
-        var lblPb = new Label { Text = "Progress:", ForeColor = Color.Silver, Location = new Point(8, 102), Size = new Size(60, 16) };
+        var lblPb = new Label { Text = "Progress:", Location = new Point(8, 102), Size = new Size(60, 16) };
         _pbPlayback = new ProgressBar { Location = new Point(72, 102), Size = new Size(680, 16), Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top, Minimum = 0, Maximum = 1000, Style = ProgressBarStyle.Continuous };
 
         topPanel.Controls.AddRange(new Control[] {
@@ -163,18 +158,17 @@ public class RecorderForm : Form
             Location = new Point(0, 130),
             Height = 54,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            BackColor = Color.FromArgb(35, 38, 52),
-            ForeColor = Color.FromArgb(180, 200, 255),
+            BackColor = SystemColors.Control,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
         timerGroup.SizeChanged += (s, e) => timerGroup.Width = ClientSize.Width;
 
-        _chkTimer = new CheckBox { Text = "Enable timer:", Location = new Point(8, 22), ForeColor = Color.Silver, Size = new Size(100, 18) };
+        _chkTimer = new CheckBox { Text = "Enable timer:", Location = new Point(8, 22), Size = new Size(100, 18) };
         _nudTimerMin = new NumericUpDown { Location = new Point(112, 20), Size = new Size(52, 20), Minimum = 0, Maximum = 120, Value = 5 };
-        var lblMin = new Label { Text = "min", ForeColor = Color.Silver, Location = new Point(168, 22), Size = new Size(24, 16) };
+        var lblMin = new Label { Text = "min", Location = new Point(168, 22), Size = new Size(24, 16) };
         _nudTimerSec = new NumericUpDown { Location = new Point(196, 20), Size = new Size(52, 20), Minimum = 0, Maximum = 59, Value = 0 };
-        var lblSec = new Label { Text = "sec", ForeColor = Color.Silver, Location = new Point(252, 22), Size = new Size(24, 16) };
-        _lblTimerCountdown = new Label { Text = "", ForeColor = Color.FromArgb(255, 200, 100), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Location = new Point(290, 20), Size = new Size(160, 20) };
+        var lblSec = new Label { Text = "sec", Location = new Point(252, 22), Size = new Size(24, 16) };
+        _lblTimerCountdown = new Label { Text = "", Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Location = new Point(290, 20), Size = new Size(160, 20) };
 
         timerGroup.Controls.AddRange(new Control[] { _chkTimer, _nudTimerMin, lblMin, _nudTimerSec, lblSec, _lblTimerCountdown });
 
@@ -228,11 +222,10 @@ public class RecorderForm : Form
         var b = new Button
         {
             Text = text, Location = loc, Size = size,
-            FlatStyle = FlatStyle.Flat,
+            FlatStyle = FlatStyle.System,
             BackColor = bg, ForeColor = fg,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
-        b.FlatAppearance.BorderColor = Color.FromArgb(80, 90, 110);
         return b;
     }
 
@@ -337,7 +330,7 @@ public class RecorderForm : Form
             BeginInvoke(() =>
             {
                 _lblStatus.Text = "Stopped";
-                _lblStatus.ForeColor = Color.FromArgb(180, 200, 255);
+                _lblStatus.ForeColor = SystemColors.ControlText;
                 _btnRecord.BackColor = Color.FromArgb(180, 30, 30);
                 _pbLevel.Value = 0;
                 RefreshRecordingList();

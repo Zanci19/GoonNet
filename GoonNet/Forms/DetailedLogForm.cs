@@ -41,26 +41,22 @@ public class DetailedLogForm : Form
         Text = "Detailed System Log";
         Size = new Size(920, 580);
         MinimumSize = new Size(700, 400);
-        BackColor = Color.FromArgb(18, 18, 26);
-        ForeColor = Color.FromArgb(210, 220, 255);
-        Font = new Font("Consolas", 8.5f);
+        BackColor = SystemColors.Control;
+        Font = new Font("Microsoft Sans Serif", 8f);
 
-        var toolBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = Color.FromArgb(28, 30, 45) };
+        var toolBar = new Panel { Dock = DockStyle.Top, Height = 30, BackColor = SystemColors.Control };
 
-        var lblTitle = new Label { Text = "DETAILED LOG", ForeColor = Color.FromArgb(180, 200, 255), Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold), Location = new Point(6, 7), Size = new Size(120, 18) };
+        var lblTitle = new Label { Text = "DETAILED LOG", Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold), Location = new Point(6, 7), Size = new Size(120, 18) };
 
-        _chkAutoScroll = new CheckBox { Text = "Auto-scroll", ForeColor = Color.Silver, Location = new Point(136, 7), Checked = true, Size = new Size(90, 18) };
+        _chkAutoScroll = new CheckBox { Text = "Auto-scroll", Location = new Point(136, 7), Checked = true, Size = new Size(90, 18) };
 
         _btnClear = new Button
         {
             Text = "Clear",
             Location = new Point(236, 4),
             Size = new Size(60, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.Silver,
-            BackColor = Color.FromArgb(50, 50, 70)
+            FlatStyle = FlatStyle.System
         };
-        _btnClear.FlatAppearance.BorderColor = Color.FromArgb(70, 80, 110);
         _btnClear.Click += (s, e) =>
         {
             _lstLog.Items.Clear();
@@ -74,24 +70,19 @@ public class DetailedLogForm : Form
             Text = "Export...",
             Location = new Point(302, 4),
             Size = new Size(72, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.Silver,
-            BackColor = Color.FromArgb(50, 50, 70)
+            FlatStyle = FlatStyle.System
         };
-        _btnExport.FlatAppearance.BorderColor = Color.FromArgb(70, 80, 110);
         _btnExport.Click += BtnExport_Click;
 
-        _lblCount = new Label { Text = "0 entries", ForeColor = Color.FromArgb(130, 150, 200), Location = new Point(386, 7), Size = new Size(120, 18) };
+        _lblCount = new Label { Text = "0 entries", Location = new Point(386, 7), Size = new Size(120, 18) };
 
         toolBar.Controls.AddRange(new Control[] { lblTitle, _chkAutoScroll, _btnClear, _btnExport, _lblCount });
 
         _lstLog = new ListBox
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(12, 14, 22),
-            ForeColor = Color.FromArgb(210, 220, 255),
             Font = new Font("Consolas", 8.5f),
-            BorderStyle = BorderStyle.None,
+            BorderStyle = BorderStyle.Fixed3D,
             SelectionMode = SelectionMode.MultiExtended,
             HorizontalScrollbar = true,
             IntegralHeight = false

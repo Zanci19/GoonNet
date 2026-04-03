@@ -34,7 +34,7 @@ public class EconomicCategoryForm : Form
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
-        var toolPanel = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = Color.FromArgb(240, 242, 252) };
+        var toolPanel = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
 
         var lblSearch = new Label { Text = "Search:", Location = new Point(4, 8), Size = new Size(48, 16) };
         _txtSearch = new TextBox { Location = new Point(54, 5), Size = new Size(180, 22) };

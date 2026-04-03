@@ -53,7 +53,7 @@ public class PlaylistSequenceForm : Form
         Font = new Font("Microsoft Sans Serif", 8f);
 
         // ── Left: sequence list ─────────────────────────────────────────────
-        var leftPanel = new Panel { Dock = DockStyle.Left, Width = 220, BackColor = Color.FromArgb(245, 245, 252) };
+        var leftPanel = new Panel { Dock = DockStyle.Left, Width = 220, BackColor = SystemColors.Control };
 
         var lblSeq = new Label { Text = "Sequences:", Location = new Point(4, 4), Size = new Size(120, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
         _lstSequences = new ListBox { Location = new Point(4, 24), Size = new Size(210, 350), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom };

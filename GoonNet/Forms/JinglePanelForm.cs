@@ -46,7 +46,7 @@ public class JinglePanelForm : Form
         Text = "Jingle Panel";
         Size = new Size(860, 430);
         MinimumSize = new Size(700, 360);
-        BackColor = Color.FromArgb(25, 28, 38);
+        BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
         // ── Group selector bar ──────────────────────────────────────────────
@@ -54,14 +54,13 @@ public class JinglePanelForm : Form
         {
             Dock = DockStyle.Top,
             Height = 30,
-            BackColor = Color.FromArgb(20, 22, 30),
+            BackColor = SystemColors.Control,
             Padding = new Padding(2)
         };
 
         var lblMode = new Label
         {
             Text = "Mode:",
-            ForeColor = Color.Silver,
             Location = new Point(4, 7),
             Size = new Size(36, 16),
             Font = new Font("Microsoft Sans Serif", 7.5f)
@@ -78,11 +77,10 @@ public class JinglePanelForm : Form
                 Text = mode.ToString(),
                 Location = new Point(mx, 4),
                 Size = new Size(80, 22),
-                FlatStyle = FlatStyle.Flat,
+                FlatStyle = FlatStyle.System,
                 Font = new Font("Microsoft Sans Serif", 7.5f),
                 Tag = mode
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(80, 90, 120);
             HighlightModeButton(btn, mode == _defaultPlayMode);
             btn.Click += (s, e) =>
             {
@@ -100,7 +98,6 @@ public class JinglePanelForm : Form
         var lblPanels = new Label
         {
             Text = "Panel:",
-            ForeColor = Color.Silver,
             Location = new Point(mx, 7),
             Size = new Size(38, 16),
             Font = new Font("Microsoft Sans Serif", 7.5f)
@@ -119,11 +116,10 @@ public class JinglePanelForm : Form
                 Text = _config.Groups[gIdx].Name,
                 Location = new Point(mx, 4),
                 Size = new Size(70, 22),
-                FlatStyle = FlatStyle.Flat,
+                FlatStyle = FlatStyle.System,
                 Font = new Font("Microsoft Sans Serif", 7.5f),
                 Tag = gIdx
             };
-            gb.FlatAppearance.BorderColor = Color.FromArgb(80, 90, 120);
             HighlightGroupButton(gb, gIdx == _config.ActiveGroupIndex);
             int captureGi = gi;
             gb.Click += (s, e) => SwitchActiveGroup(captureGi + 1);
@@ -137,31 +133,28 @@ public class JinglePanelForm : Form
             Text = "⚙ Configure",
             Location = new Point(mx + 10, 4),
             Size = new Size(90, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.FromArgb(180, 200, 255),
-            BackColor = Color.FromArgb(40, 50, 80),
+            FlatStyle = FlatStyle.System,
             Font = new Font("Microsoft Sans Serif", 7.5f),
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
-        btnConfigure.FlatAppearance.BorderColor = Color.FromArgb(80, 110, 160);
         btnConfigure.Click += BtnConfigure_Click;
         _groupSelectPanel.Controls.Add(btnConfigure);
 
         // ── Main area: fixed group (left) + active group (right) ────────────
-        var mainPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(25, 28, 38) };
+        var mainPanel = new Panel { Dock = DockStyle.Fill, BackColor = SystemColors.Control };
 
         _fixedGroupPanel = new Panel
         {
             Location = new Point(0, 0),
             Width = 400,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom,
-            BackColor = Color.FromArgb(28, 32, 44)
+            BackColor = SystemColors.ControlDark,
+            BorderStyle = BorderStyle.Fixed3D
         };
 
         var fixedLabel = new Label
         {
             Text = "FIXED",
-            ForeColor = Color.FromArgb(180, 200, 255),
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             Location = new Point(4, 2),
             Size = new Size(380, 16),
@@ -172,13 +165,13 @@ public class JinglePanelForm : Form
         _activeGroupPanel = new Panel
         {
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
-            BackColor = Color.FromArgb(22, 28, 38)
+            BackColor = SystemColors.Control,
+            BorderStyle = BorderStyle.Fixed3D
         };
 
         var activeLabel = new Label
         {
             Name = "lblActiveGroupName",
-            ForeColor = Color.FromArgb(255, 210, 130),
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             Location = new Point(4, 2),
             Size = new Size(400, 16),
@@ -211,14 +204,15 @@ public class JinglePanelForm : Form
 
     private static void HighlightModeButton(Button btn, bool active)
     {
-        btn.BackColor = active ? Color.FromArgb(60, 80, 130) : Color.FromArgb(30, 35, 55);
-        btn.ForeColor = active ? Color.White : Color.FromArgb(160, 170, 200);
+        btn.BackColor = active ? SystemColors.Highlight : SystemColors.Control;
+        btn.ForeColor = active ? SystemColors.HighlightText : SystemColors.ControlText;
     }
 
     private static void HighlightGroupButton(Button btn, bool active)
     {
-        btn.BackColor = active ? Color.FromArgb(100, 70, 20) : Color.FromArgb(30, 35, 55);
-        btn.ForeColor = active ? Color.FromArgb(255, 220, 100) : Color.Silver;
+        btn.BackColor = active ? SystemColors.Highlight : SystemColors.Control;
+        btn.ForeColor = active ? SystemColors.HighlightText : SystemColors.ControlText;
+        btn.Font = new Font("Microsoft Sans Serif", 7.5f, active ? FontStyle.Bold : FontStyle.Regular);
     }
 
     private void SwitchActiveGroup(int groupIndex)
@@ -271,13 +265,11 @@ public class JinglePanelForm : Form
                 Text = string.IsNullOrEmpty(cfg.Label) ? $"#{i + 1}" : cfg.Label,
                 Location = new Point(4 + col * bw, 20 + row * bh),
                 Size = new Size(bw - 2, bh - 2),
-                FlatStyle = FlatStyle.Flat,
+                FlatStyle = FlatStyle.System,
                 Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold),
-                ForeColor = Color.White,
-                BackColor = ParseColor(cfg.ColorHex, Color.FromArgb(40, 50, 70)),
+                BackColor = ParseColor(cfg.ColorHex, SystemColors.Control),
                 Tag = cfg
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(60, 80, 110);
             btn.Click += (s, e) => PlayJingle(captureGroup, captureI);
             btn.MouseUp += (s, e) =>
             {
@@ -436,7 +428,7 @@ public class JinglePanelForm : Form
         if (dlg.ShowDialog(this) == DialogResult.OK)
         {
             btn.Text = string.IsNullOrEmpty(cfg.Label) ? $"#{buttonIndex + 1}" : cfg.Label;
-            btn.BackColor = ParseColor(cfg.ColorHex, Color.FromArgb(40, 50, 70));
+            btn.BackColor = ParseColor(cfg.ColorHex, SystemColors.Control);
             SaveConfig();
         }
     }
