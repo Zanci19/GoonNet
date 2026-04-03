@@ -46,7 +46,7 @@ public sealed class StreamManager : IDisposable
     private LameMP3FileWriter? _encoder;
     private WaveFormat? _encoderFormat;
     private readonly BlockingCollection<(float[] samples, int count, WaveFormat format)> _queue
-        = new(boundedCapacity: 160);
+        = new(boundedCapacity: 30);
     private SampleAggregator? _currentAggregator;
     private bool _disposed;
 
@@ -525,27 +525,61 @@ public sealed class StreamManager : IDisposable
     }
 
     // ── StreamClient: wraps an HTTP response stream ────────────────────────────
+    //
+    // Each client owns a bounded write queue and a dedicated background thread that
+    // drains it to the network.  The encode thread only enqueues bytes (non-blocking),
+    // so a slow listener can never stall the encoding pipeline.  If the write queue
+    // fills up the client is considered too slow and is disconnected.
 
     private sealed class StreamClient
     {
         private readonly Stream _stream;
         private readonly ManualResetEventSlim _done = new();
+        // Holds at most 32 encoded MP3 chunks (~3 s at 128 kbps) per client.
+        private readonly BlockingCollection<byte[]> _writeQueue = new(boundedCapacity: 32);
+        private volatile bool _isClosed;
 
-        public StreamClient(Stream stream) { _stream = stream; }
+        public StreamClient(Stream stream)
+        {
+            _stream = stream;
+            var t = new Thread(WriteLoop) { IsBackground = true, Name = "StreamWrite" };
+            t.Start();
+        }
 
-        public bool TryWrite(byte[] buffer, int offset, int count)
+        private void WriteLoop()
         {
             try
             {
-                _stream.Write(buffer, offset, count);
-                _stream.Flush();
-                return true;
+                foreach (var chunk in _writeQueue.GetConsumingEnumerable())
+                {
+                    _stream.Write(chunk, 0, chunk.Length);
+                    _stream.Flush();
+                }
             }
-            catch
+            catch { }
+            finally
             {
                 _done.Set();
+                // Dispose the queue here, after the thread has finished consuming it,
+                // to avoid an ObjectDisposedException on an in-progress Wait() call.
+                _writeQueue.Dispose();
+            }
+        }
+
+        public bool TryWrite(byte[] buffer, int offset, int count)
+        {
+            if (_isClosed) return false;
+            var copy = new byte[count];
+            Array.Copy(buffer, offset, copy, 0, count);
+            try
+            {
+                if (_writeQueue.TryAdd(copy))
+                    return true;
+                // Queue full — client is too slow; disconnect it.
+                Close();
                 return false;
             }
+            catch { return false; }
         }
 
         public void Wait(CancellationToken ct)
@@ -555,7 +589,10 @@ public sealed class StreamManager : IDisposable
 
         public void Close()
         {
+            if (_isClosed) return;
+            _isClosed = true;
             _done.Set();
+            try { _writeQueue.CompleteAdding(); } catch { }
             try { _stream.Close(); } catch { }
         }
     }
