@@ -148,7 +148,7 @@ public class JinglePanelForm : Form
             Location = new Point(0, 0),
             Width = 400,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Bottom,
-            BackColor = SystemColors.ControlDark,
+            BackColor = SystemColors.Control,
             BorderStyle = BorderStyle.Fixed3D
         };
 
