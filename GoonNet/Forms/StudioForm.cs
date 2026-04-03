@@ -498,7 +498,8 @@ public class StudioForm : Form
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Bottom,
+            Height = 260,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
