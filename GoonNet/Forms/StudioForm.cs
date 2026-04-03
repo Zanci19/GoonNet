@@ -223,7 +223,7 @@ public class StudioForm : Form
         {
             Text = "CONTROLS",
             Location = new Point(376, 4),
-            Size = new Size(222, 196),
+            Size = new Size(260, 186),
             Anchor = AnchorStyles.Top | AnchorStyles.Left,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
@@ -232,7 +232,7 @@ public class StudioForm : Form
         {
             Text = "▶ PLAY",
             Location = new Point(8, 20),
-            Size = new Size(100, 36),
+            Size = new Size(118, 32),
             BackColor = Color.FromArgb(200, 255, 200),
             FlatStyle = FlatStyle.System,
             Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold)
@@ -242,28 +242,28 @@ public class StudioForm : Form
         _btnStop = new Button
         {
             Text = "■ STOP",
-            Location = new Point(112, 20),
-            Size = new Size(96, 36),
+            Location = new Point(132, 20),
+            Size = new Size(118, 32),
             BackColor = Color.FromArgb(255, 200, 200),
             FlatStyle = FlatStyle.System,
             Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold)
         };
         _btnStop.Click += (s, e) => { AudioEngine.Instance.Stop(); UpdatePlaylistStatus(); };
 
-        _btnNext = new Button { Text = "⏭ NEXT", Location = new Point(8, 62), Size = new Size(96, 28), FlatStyle = FlatStyle.System };
+        _btnNext = new Button { Text = "⏭ NEXT", Location = new Point(8, 58), Size = new Size(118, 24), FlatStyle = FlatStyle.System };
         _btnNext.Click += BtnNext_Click;
 
-        _btnCue = new Button { Text = "CUE", Location = new Point(112, 62), Size = new Size(96, 28), FlatStyle = FlatStyle.System };
+        _btnCue = new Button { Text = "CUE", Location = new Point(132, 58), Size = new Size(118, 24), FlatStyle = FlatStyle.System };
         _btnCue.Click += BtnCue_Click;
 
-        _btnFadeOut = new Button { Text = "FADE OUT", Location = new Point(8, 96), Size = new Size(200, 24), FlatStyle = FlatStyle.System };
+        _btnFadeOut = new Button { Text = "FADE OUT", Location = new Point(8, 86), Size = new Size(242, 22), FlatStyle = FlatStyle.System };
         _btnFadeOut.Click += (s, e) => AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromSeconds(5));
 
         _btnPanic = new Button
         {
             Text = "⚡ PANIC",
-            Location = new Point(8, 126),
-            Size = new Size(200, 24),
+            Location = new Point(8, 112),
+            Size = new Size(242, 22),
             BackColor = Color.FromArgb(200, 50, 50),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.System,
@@ -271,28 +271,56 @@ public class StudioForm : Form
         };
         _btnPanic.Click += BtnPanic_Click;
 
-        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 156), Size = new Size(52, 16) };
+        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 138), Size = new Size(52, 16) };
         _volumeSlider = new TrackBar
         {
-            Location = new Point(62, 150),
-            Size = new Size(118, 30),
+            Location = new Point(62, 132),
+            Size = new Size(156, 26),
             Minimum = 0,
             Maximum = 100,
             Value = 85,
-            TickFrequency = 10
+            TickFrequency = 10,
+            TickStyle = TickStyle.None
         };
         _volumeSlider.ValueChanged += (s, e) =>
         {
             AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f;
             _lblVolume.Text = _volumeSlider.Value + "%";
         };
-        _lblVolume = new Label { Text = "85%", Location = new Point(183, 156), Size = new Size(30, 16) };
+        _lblVolume = new Label { Text = "85%", Location = new Point(221, 138), Size = new Size(30, 16) };
 
-        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 180), Checked = true };
+        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 164), Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
 
-        var btnReminder = new Button { Text = "🔔 Reminder...", Location = new Point(100, 180), Size = new Size(112, 18), FlatStyle = FlatStyle.System, Font = new Font("Microsoft Sans Serif", 7f) };
+        var btnReminder = new Button { Text = "🔔 Reminder...", Location = new Point(100, 163), Size = new Size(150, 20), FlatStyle = FlatStyle.System, Font = new Font("Microsoft Sans Serif", 7f) };
         btnReminder.Click += BtnReminder_Click;
+
+        var sliderPanel = new Panel
+        {
+            Location = new Point(264, 18),
+            Size = new Size(190, 166),
+            BackColor = Color.FromArgb(20, 22, 34),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        var lblPitch = new Label { Text = "Pitch", Location = new Point(8, 8), Size = new Size(48, 16), ForeColor = Color.FromArgb(180, 200, 255), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _pitchSlider = new TrackBar { Location = new Point(56, 4), Size = new Size(92, 28), Minimum = -24, Maximum = 24, Value = 0, TickFrequency = 6, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
+        _pitchSlider.ValueChanged += PitchSlider_Changed;
+        _lblPitchVal = new Label { Text = "0 st", Location = new Point(150, 8), Size = new Size(34, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        var lblTempo = new Label { Text = "Tempo", Location = new Point(8, 58), Size = new Size(48, 16), ForeColor = Color.FromArgb(255, 210, 130), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _tempoSlider = new TrackBar { Location = new Point(56, 54), Size = new Size(92, 28), Minimum = -50, Maximum = 100, Value = 0, TickFrequency = 25, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
+        _tempoSlider.ValueChanged += TempoSlider_Changed;
+        _lblTempoVal = new Label { Text = "0%", Location = new Point(150, 58), Size = new Size(34, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        var lblRate = new Label { Text = "Rate", Location = new Point(8, 108), Size = new Size(48, 16), ForeColor = Color.FromArgb(200, 255, 200), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
+        _rateSlider = new TrackBar { Location = new Point(56, 104), Size = new Size(92, 28), Minimum = -50, Maximum = 100, Value = 0, TickFrequency = 25, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
+        _rateSlider.ValueChanged += RateSlider_Changed;
+        _lblRateVal = new Label { Text = "x1.00", Location = new Point(150, 108), Size = new Size(36, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+
+        var btnResetPitch = new Button { Text = "Reset", Location = new Point(124, 136), Size = new Size(56, 22), FlatStyle = FlatStyle.Flat, ForeColor = Color.Silver, BackColor = Color.FromArgb(40, 40, 55), Font = new Font("Microsoft Sans Serif", 7f) };
+        btnResetPitch.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 100);
+        btnResetPitch.Click += (s, e) => ResetPitchSpeed();
+        sliderPanel.Controls.AddRange(new Control[] { lblPitch, _pitchSlider, _lblPitchVal, lblTempo, _tempoSlider, _lblTempoVal, lblRate, _rateSlider, _lblRateVal, btnResetPitch });
 
         ctrlPanel.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, _btnPanic, lblVol, _volumeSlider, _lblVolume, _chkAutoPlay, btnReminder });
 
@@ -313,8 +341,8 @@ public class StudioForm : Form
         // ---- RIGHT PANEL (UP NEXT + PREVIEW + CLOCK, grows horizontally) ----
         var rightPanel = new Panel
         {
-            Location = new Point(606, 4),
-            Size = new Size(440, 186),
+            Location = new Point(644, 4),
+            Size = new Size(402, 186),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             BackColor = SystemColors.Control
         };
@@ -338,12 +366,12 @@ public class StudioForm : Form
         {
             Text = "UP NEXT",
             Location = new Point(0, 0),
-            Size = new Size(440, 100),
+            Size = new Size(402, 100),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
-        _lblNextArtist = new Label { Text = "---", Location = new Point(6, 18), Size = new Size(378, 18), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        _lblNextTitle = new Label { Text = string.Empty, Location = new Point(6, 38), Size = new Size(378, 16), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        _lblNextArtist = new Label { Text = "---", Location = new Point(6, 18), Size = new Size(340, 18), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        _lblNextTitle = new Label { Text = string.Empty, Location = new Point(6, 38), Size = new Size(340, 16), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         _lblNextDuration = new Label { Text = string.Empty, Location = new Point(6, 58), Size = new Size(150, 14), Font = new Font("Microsoft Sans Serif", 7f) };
         _btnLoadNext = new Button { Text = "Load Next", Location = new Point(158, 54), Size = new Size(80, 22), FlatStyle = FlatStyle.System };
         _btnLoadNext.Click += BtnLoadNext_Click;
@@ -353,11 +381,11 @@ public class StudioForm : Form
         {
             Text = "PREVIEW / MONITOR",
             Location = new Point(0, 108),
-            Size = new Size(440, 74),
+            Size = new Size(402, 74),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
-        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(380, 14), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(346, 14), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         _btnPreviewPlay = new Button { Text = "▶", Location = new Point(6, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
         _btnPreviewPlay.Click += BtnPreviewPlay_Click;
         _btnPreviewStop = new Button { Text = "■", Location = new Point(46, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
@@ -368,7 +396,7 @@ public class StudioForm : Form
         previewPanel.Controls.AddRange(new Control[] { _lblPreviewTrack, _btnPreviewPlay, _btnPreviewStop, lblPreviewVol, _previewVolumeSlider });
 
         rightPanel.Controls.AddRange(new Control[] { _lblClock, _lblOnAir, nextPanel, previewPanel });
-        topPanel.Controls.AddRange(new Control[] { nowPanel, ctrlPanel, rightPanel });
+        topPanel.Controls.AddRange(new Control[] { nowPanel, ctrlPanel, sliderPanel, rightPanel });
 
         // ══════════════════════════════════════════════════════════════════════
         // STREAMING STATUS BAR
@@ -475,7 +503,7 @@ public class StudioForm : Form
         // Wire up SizeChanged to keep inner panels sized correctly
         SizeChanged += (s, e) =>
         {
-            rightPanel.Width = ClientSize.Width - 614;
+            rightPanel.Width = ClientSize.Width - 652;
             _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
         };
 
@@ -486,7 +514,7 @@ public class StudioForm : Form
     {
         var bar = new Panel
         {
-            Height = 64,
+            Height = 32,
             BackColor = Color.FromArgb(20, 22, 34)
         };
 
@@ -532,80 +560,8 @@ public class StudioForm : Form
         _btnSaveSession.Click += (s, e) => { SaveSession(); MessageBox.Show("Session saved.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Information); };
 
         // ── CENTER/RIGHT: Pitch, Tempo, Rate sliders ────────────────────────
-        int sliderX = 448;
-
-        var lblPitch = new Label { Text = "Pitch:", Location = new Point(sliderX, 8), Size = new Size(34, 16), ForeColor = Color.FromArgb(180, 200, 255), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _pitchSlider = new TrackBar
-        {
-            Location = new Point(sliderX + 36, 4),
-            Size = new Size(120, 28),
-            Minimum = -24,
-            Maximum = 24,
-            Value = 0,
-            TickFrequency = 6,
-            TickStyle = TickStyle.None,
-            BackColor = Color.FromArgb(20, 22, 34)
-        };
-        _pitchSlider.ValueChanged += PitchSlider_Changed;
-        _lblPitchVal = new Label { Text = "0 st", Location = new Point(sliderX + 158, 8), Size = new Size(38, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
-
-        sliderX += 204;
-        var lblTempo = new Label { Text = "Tempo:", Location = new Point(sliderX, 8), Size = new Size(44, 16), ForeColor = Color.FromArgb(255, 210, 130), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _tempoSlider = new TrackBar
-        {
-            Location = new Point(sliderX + 46, 4),
-            Size = new Size(120, 28),
-            Minimum = -50,
-            Maximum = 100,
-            Value = 0,
-            TickFrequency = 25,
-            TickStyle = TickStyle.None,
-            BackColor = Color.FromArgb(20, 22, 34)
-        };
-        _tempoSlider.ValueChanged += TempoSlider_Changed;
-        _lblTempoVal = new Label { Text = "0%", Location = new Point(sliderX + 168, 8), Size = new Size(38, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
-
-        sliderX += 210;
-        var lblRate = new Label { Text = "Rate:", Location = new Point(sliderX, 8), Size = new Size(34, 16), ForeColor = Color.FromArgb(200, 255, 200), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _rateSlider = new TrackBar
-        {
-            Location = new Point(sliderX + 36, 4),
-            Size = new Size(120, 28),
-            Minimum = -50,
-            Maximum = 100,
-            Value = 0,
-            TickFrequency = 25,
-            TickStyle = TickStyle.None,
-            BackColor = Color.FromArgb(20, 22, 34)
-        };
-        _rateSlider.ValueChanged += RateSlider_Changed;
-        _lblRateVal = new Label { Text = "x1.00", Location = new Point(sliderX + 158, 8), Size = new Size(44, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
-
-        sliderX += 210;
-        var btnReset = new Button
-        {
-            Text = "↺ Reset",
-            Location = new Point(sliderX, 4),
-            Size = new Size(62, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.Silver,
-            BackColor = Color.FromArgb(40, 40, 55),
-            Font = new Font("Microsoft Sans Serif", 7.5f)
-        };
-        btnReset.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 100);
-        btnReset.Click += (s, e) => ResetPitchSpeed();
-
-        // ── SECOND ROW: tip labels ─────────────────────────────────────────
-        var tipPitch = new Label { Text = "Pitch only (speed unchanged)", Location = new Point(484, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
-        var tipTempo = new Label { Text = "Speed only (pitch unchanged)", Location = new Point(688, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
-        var tipRate = new Label { Text = "Both pitch+speed (like tape)", Location = new Point(892, 36), Size = new Size(184, 14), ForeColor = Color.FromArgb(90, 100, 130), Font = new Font("Microsoft Sans Serif", 6.5f) };
-
         bar.Controls.AddRange(new Control[] {
-            lblPl, _cboPlaylistSelect, btnLoad, _btnSaveSession,
-            lblPitch, _pitchSlider, _lblPitchVal,
-            lblTempo, _tempoSlider, _lblTempoVal,
-            lblRate, _rateSlider, _lblRateVal,
-            btnReset, tipPitch, tipTempo, tipRate
+            lblPl, _cboPlaylistSelect, btnLoad, _btnSaveSession
         });
         return bar;
     }
@@ -1689,4 +1645,3 @@ internal class ReminderDialog : Form
         AcceptButton = btnOk; CancelButton = btnCancel;
     }
 }
-
