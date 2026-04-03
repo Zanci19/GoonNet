@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -10,13 +11,17 @@ public class AdManagerForm : Form
     public AdDatabase AdDb { get; set; } = null!;
 
     private ListView _lvAds = null!;
+    private ListView _lvPlayQueue = null!;
     private TextBox _txtSearch = null!;
     private Button _btnAdd = null!;
     private Button _btnEdit = null!;
     private Button _btnDelete = null!;
     private Button _btnPreview = null!;
     private Button _btnStop = null!;
+    private Button _btnQueue = null!;
+    private Button _btnPlayQueued = null!;
     private Label _lblCount = null!;
+    private readonly List<Guid> _queuedIds = new();
 
     public AdManagerForm()
     {
@@ -26,36 +31,51 @@ public class AdManagerForm : Form
 
     private void InitializeComponent()
     {
-        Text = "Advertisement Manager";
-        Size = new Size(900, 520);
-        MinimumSize = new Size(700, 400);
+        Text = "Advertisement Desk";
+        Size = new Size(930, 560);
+        MinimumSize = new Size(760, 480);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
-        var toolPanel = new Panel { Dock = DockStyle.Top, Height = 30 };
+        var topPanel = new Panel { Dock = DockStyle.Top, Height = 34 };
 
-        var lblSearch = new Label { Text = "Search:", Location = new Point(4, 6), Size = new Size(48, 16) };
-        _txtSearch = new TextBox { Location = new Point(56, 4), Size = new Size(200, 20), BorderStyle = BorderStyle.Fixed3D };
+        var lblSearch = new Label { Text = "Find:", Location = new Point(6, 10), Size = new Size(32, 16) };
+        _txtSearch = new TextBox { Location = new Point(40, 7), Size = new Size(200, 20), BorderStyle = BorderStyle.Fixed3D };
         _txtSearch.TextChanged += (s, e) => RefreshList();
 
-        _btnAdd = new Button { Text = "Add...", Location = new Point(264, 3), Size = new Size(60, 22), FlatStyle = FlatStyle.System };
+        _btnAdd = new Button { Text = "Add", Location = new Point(246, 6), Size = new Size(52, 22), FlatStyle = FlatStyle.System };
         _btnAdd.Click += BtnAdd_Click;
 
-        _btnEdit = new Button { Text = "Edit...", Location = new Point(328, 3), Size = new Size(60, 22), FlatStyle = FlatStyle.System };
+        _btnEdit = new Button { Text = "Edit", Location = new Point(302, 6), Size = new Size(52, 22), FlatStyle = FlatStyle.System };
         _btnEdit.Click += BtnEdit_Click;
 
-        _btnDelete = new Button { Text = "Delete", Location = new Point(392, 3), Size = new Size(60, 22), FlatStyle = FlatStyle.System };
+        _btnDelete = new Button { Text = "Delete", Location = new Point(358, 6), Size = new Size(56, 22), FlatStyle = FlatStyle.System };
         _btnDelete.Click += BtnDelete_Click;
 
-        _btnPreview = new Button { Text = "▶ Preview", Location = new Point(460, 3), Size = new Size(70, 22), FlatStyle = FlatStyle.System };
+        _btnPreview = new Button { Text = "▶ Preview", Location = new Point(420, 6), Size = new Size(74, 22), FlatStyle = FlatStyle.System };
         _btnPreview.Click += BtnPreview_Click;
 
-        _btnStop = new Button { Text = "■ Stop", Location = new Point(534, 3), Size = new Size(60, 22), FlatStyle = FlatStyle.System };
+        _btnStop = new Button { Text = "■ Stop", Location = new Point(498, 6), Size = new Size(56, 22), FlatStyle = FlatStyle.System };
         _btnStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
 
-        _lblCount = new Label { Text = "0 ads", Location = new Point(604, 6), Size = new Size(120, 16) };
+        _btnQueue = new Button { Text = "Queue +", Location = new Point(560, 6), Size = new Size(66, 22), FlatStyle = FlatStyle.System };
+        _btnQueue.Click += BtnQueue_Click;
 
-        toolPanel.Controls.AddRange(new Control[] { lblSearch, _txtSearch, _btnAdd, _btnEdit, _btnDelete, _btnPreview, _btnStop, _lblCount });
+        _btnPlayQueued = new Button { Text = "Play Queue", Location = new Point(630, 6), Size = new Size(78, 22), FlatStyle = FlatStyle.System };
+        _btnPlayQueued.Click += BtnPlayQueued_Click;
+
+        _lblCount = new Label { Text = "0 ads", Location = new Point(720, 10), Size = new Size(180, 16) };
+
+        topPanel.Controls.AddRange(new Control[] { lblSearch, _txtSearch, _btnAdd, _btnEdit, _btnDelete, _btnPreview, _btnStop, _btnQueue, _btnPlayQueued, _lblCount });
+
+        var split = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Horizontal,
+            SplitterDistance = 325,
+            SplitterWidth = 4,
+            BorderStyle = BorderStyle.Fixed3D
+        };
 
         _lvAds = new ListView
         {
@@ -63,23 +83,56 @@ public class AdManagerForm : Form
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
-            BorderStyle = BorderStyle.Fixed3D,
+            BorderStyle = BorderStyle.None,
             Font = new Font("Microsoft Sans Serif", 8f)
         };
-        _lvAds.Columns.Add("Title", 160);
+        _lvAds.Columns.Add("ID", 40);
         _lvAds.Columns.Add("Advertiser", 130);
-        _lvAds.Columns.Add("Duration", 65);
-        _lvAds.Columns.Add("Start Date", 90);
-        _lvAds.Columns.Add("End Date", 90);
-        _lvAds.Columns.Add("Max/Day", 55);
+        _lvAds.Columns.Add("Title", 190);
+        _lvAds.Columns.Add("Category", 80);
+        _lvAds.Columns.Add("Dur", 45);
+        _lvAds.Columns.Add("Start", 70);
+        _lvAds.Columns.Add("End", 70);
+        _lvAds.Columns.Add("Max", 42);
         _lvAds.Columns.Add("Today", 45);
-        _lvAds.Columns.Add("Total Plays", 65);
-        _lvAds.Columns.Add("Active", 45);
-        _lvAds.Columns.Add("File", 160);
+        _lvAds.Columns.Add("Status", 60);
+        _lvAds.Columns.Add("File", 200);
         _lvAds.DoubleClick += (s, e) => BtnEdit_Click(s, e);
 
-        Controls.Add(_lvAds);
-        Controls.Add(toolPanel);
+        var queueHeader = new Panel { Dock = DockStyle.Top, Height = 24, BackColor = SystemColors.ControlDark };
+        queueHeader.Controls.Add(new Label
+        {
+            Text = "Ad Play Queue",
+            ForeColor = Color.White,
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
+            Location = new Point(6, 5),
+            Size = new Size(120, 16)
+        });
+
+        _lvPlayQueue = new ListView
+        {
+            Dock = DockStyle.Fill,
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true,
+            BorderStyle = BorderStyle.None,
+            BackColor = Color.Black,
+            ForeColor = Color.FromArgb(190, 210, 255),
+            Font = new Font("Consolas", 8f)
+        };
+        _lvPlayQueue.Columns.Add("#", 36);
+        _lvPlayQueue.Columns.Add("Advertiser", 170);
+        _lvPlayQueue.Columns.Add("Spot", 220);
+        _lvPlayQueue.Columns.Add("Length", 60);
+        _lvPlayQueue.Columns.Add("File", 320);
+        _lvPlayQueue.DoubleClick += (s, e) => BtnPlayQueued_Click(s, e);
+
+        split.Panel1.Controls.Add(_lvAds);
+        split.Panel2.Controls.Add(_lvPlayQueue);
+        split.Panel2.Controls.Add(queueHeader);
+
+        Controls.Add(split);
+        Controls.Add(topPanel);
     }
 
     private void RefreshList()
@@ -95,15 +148,17 @@ public class AdManagerForm : Form
                 !ad.Advertiser.Contains(search, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var lvi = new ListViewItem(ad.Title);
+            count++;
+            var lvi = new ListViewItem(count.ToString());
             lvi.SubItems.Add(ad.Advertiser);
+            lvi.SubItems.Add(ad.Title);
+            lvi.SubItems.Add(ad.ContractNumber);
             lvi.SubItems.Add(ad.Duration > TimeSpan.Zero ? ad.Duration.ToString(@"m\:ss") : "");
-            lvi.SubItems.Add(ad.StartDate.ToString("dd/MM/yyyy"));
-            lvi.SubItems.Add(ad.EndDate.ToString("dd/MM/yyyy"));
+            lvi.SubItems.Add(ad.StartDate.ToString("dd/MM/yy"));
+            lvi.SubItems.Add(ad.EndDate.ToString("dd/MM/yy"));
             lvi.SubItems.Add(ad.MaxPlaysPerDay.ToString());
             lvi.SubItems.Add(ad.PlaysToday.ToString());
-            lvi.SubItems.Add(ad.TotalPlays.ToString());
-            lvi.SubItems.Add(ad.IsActive ? "Yes" : "No");
+            lvi.SubItems.Add(ad.IsActive ? "Active" : "Off");
             lvi.SubItems.Add(ad.FileName);
             lvi.Tag = ad.Id;
 
@@ -114,10 +169,34 @@ public class AdManagerForm : Form
                 lvi.ForeColor = Color.DarkOrange;
 
             _lvAds.Items.Add(lvi);
-            count++;
         }
         _lvAds.EndUpdate();
-        if (_lblCount != null) _lblCount.Text = $"{count} advertisement{(count == 1 ? "" : "s")}";
+        _lblCount.Text = $"{count} advertisement{(count == 1 ? "" : "s")}";
+    }
+
+    private void BtnQueue_Click(object? sender, EventArgs e)
+    {
+        if (_lvAds.SelectedItems.Count == 0) return;
+        var id = (Guid)_lvAds.SelectedItems[0].Tag!;
+        var ad = AdDb.GetById(id);
+        if (ad == null) return;
+
+        _queuedIds.Add(id);
+        var item = new ListViewItem(_queuedIds.Count.ToString());
+        item.SubItems.Add(ad.Advertiser);
+        item.SubItems.Add(ad.Title);
+        item.SubItems.Add(ad.Duration > TimeSpan.Zero ? ad.Duration.ToString(@"m\:ss") : "");
+        item.SubItems.Add(ad.FileName);
+        item.Tag = id;
+        _lvPlayQueue.Items.Add(item);
+    }
+
+    private void BtnPlayQueued_Click(object? sender, EventArgs e)
+    {
+        if (_lvPlayQueue.Items.Count == 0) return;
+        var item = _lvPlayQueue.SelectedItems.Count > 0 ? _lvPlayQueue.SelectedItems[0] : _lvPlayQueue.Items[0];
+        var id = (Guid)item.Tag!;
+        PlayAdById(id);
     }
 
     private void BtnAdd_Click(object? sender, EventArgs e)
@@ -162,6 +241,11 @@ public class AdManagerForm : Form
     {
         if (_lvAds.SelectedItems.Count == 0) return;
         var id = (Guid)_lvAds.SelectedItems[0].Tag!;
+        PlayAdById(id);
+    }
+
+    private void PlayAdById(Guid id)
+    {
         var ad = AdDb.GetById(id);
         if (ad == null) return;
         string path = Path.Combine(ad.Location, ad.FileName);
@@ -170,6 +254,7 @@ public class AdManagerForm : Form
             MessageBox.Show($"File not found:\n{path}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+
         var track = new MusicTrack
         {
             Artist = ad.Advertiser,
@@ -256,7 +341,7 @@ internal class AdEditorDialog : Form
 
         _txtComments = new TextBox { BorderStyle = BorderStyle.Fixed3D, Multiline = true, Height = 40, ScrollBars = ScrollBars.Vertical };
         AddRow("Comments:", _txtComments);
-        y += 14; // extra height for multiline
+        y += 14;
 
         _chkActive = new CheckBox { Text = "Active", Location = new Point(fx, y), Checked = true };
         Controls.Add(_chkActive);
