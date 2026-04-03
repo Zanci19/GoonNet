@@ -425,7 +425,7 @@ public class StudioForm : Form
         {
             Text = "SPECTRUM ANALYZER",
             Dock = DockStyle.Top,
-            Height = 220,
+            Height = 280,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             BackColor = Color.Black,
             ForeColor = Color.FromArgb(0, 200, 0)
@@ -1313,22 +1313,22 @@ public class StudioForm : Form
 
     private void EnsureDisplayFields(PlaylistItem item)
     {
-        bool needsArtistTitle = string.IsNullOrWhiteSpace(item.Artist) || string.IsNullOrWhiteSpace(item.Title);
-        bool needsDuration = !item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero;
+        bool missingArtistTitle = string.IsNullOrWhiteSpace(item.Artist) || string.IsNullOrWhiteSpace(item.Title);
+        bool missingDuration = !item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero;
 
-        if (!needsArtistTitle && !needsDuration)
+        if (!missingArtistTitle && !missingDuration)
             return;
 
         var track = MusicDb?.GetById(item.TrackId);
         if (track == null) return;
 
-        if (needsArtistTitle)
+        if (missingArtistTitle)
         {
             item.Artist = track.Artist;
             item.Title = track.Title;
         }
 
-        if (needsDuration && track.Duration > TimeSpan.Zero)
+        if (missingDuration && track.Duration > TimeSpan.Zero)
             item.Duration = track.Duration;
     }
 
