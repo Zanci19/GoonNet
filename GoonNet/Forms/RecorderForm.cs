@@ -35,6 +35,7 @@ public class RecorderForm : Form
     private Label _lblDuration = null!;
     private ProgressBar _pbLevel = null!;
     private ProgressBar _pbPlayback = null!;
+    private WavePreviewPanel _wavePreview = null!;
 
     // ── Timer controls
     private CheckBox _chkTimer = null!;
@@ -77,13 +78,13 @@ public class RecorderForm : Form
     private void InitializeComponent()
     {
         Text = "Recorder";
-        Size = new Size(780, 520);
-        MinimumSize = new Size(640, 440);
+        Size = new Size(760, 430);
+        MinimumSize = new Size(620, 360);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
 
-        // ── Top: device + controls ──────────────────────────────────────────
-        var topPanel = new Panel { Dock = DockStyle.Top, Height = 130, BackColor = SystemColors.Control };
+        // ── Transport bar ────────────────────────────────────────────────────
+        var topPanel = new Panel { Dock = DockStyle.Top, Height = 58, BackColor = SystemColors.Control };
 
         var lblDev = new Label { Text = "Input device:", Location = new Point(8, 10), Size = new Size(80, 16) };
         _cboInputDevice = new ComboBox
@@ -106,56 +107,57 @@ public class RecorderForm : Form
         _cboBitrate.SelectedIndex = 0;
 
         // Buttons
-        _btnRecord = MakeBtn("⏺ RECORD", Color.FromArgb(180, 30, 30), Color.White, new Point(8, 36), new Size(110, 36));
+        _btnRecord = MakeBtn("● REC", Color.FromArgb(180, 30, 30), Color.White, new Point(8, 30), new Size(70, 24));
         _btnRecord.Click += BtnRecord_Click;
 
-        _btnStop = MakeBtn("■ STOP", SystemColors.Control, SystemColors.ControlText, new Point(124, 36), new Size(80, 36));
+        _btnStop = MakeBtn("■ STOP", SystemColors.Control, SystemColors.ControlText, new Point(82, 30), new Size(62, 24));
         _btnStop.Click += BtnStop_Click;
 
-        _btnPlay = MakeBtn("▶ PLAY", Color.FromArgb(30, 100, 40), Color.White, new Point(212, 36), new Size(80, 36));
+        _btnPlay = MakeBtn("▶ PLAY", Color.FromArgb(30, 100, 40), Color.White, new Point(148, 30), new Size(62, 24));
         _btnPlay.Click += BtnPlay_Click;
 
-        _btnPause = MakeBtn("⏸ PAUSE", SystemColors.Control, SystemColors.ControlText, new Point(298, 36), new Size(80, 36));
+        _btnPause = MakeBtn("⏸ PAUSE", SystemColors.Control, SystemColors.ControlText, new Point(214, 30), new Size(62, 24));
         _btnPause.Click += BtnPause_Click;
 
-        _btnOpen = MakeBtn("📂 OPEN", SystemColors.Control, SystemColors.ControlText, new Point(390, 36), new Size(80, 36));
+        _btnOpen = MakeBtn("OPEN", SystemColors.Control, SystemColors.ControlText, new Point(280, 30), new Size(52, 24));
         _btnOpen.Click += BtnOpen_Click;
 
-        _btnSave = MakeBtn("💾 SAVE AS", SystemColors.Control, SystemColors.ControlText, new Point(478, 36), new Size(90, 36));
+        _btnSave = MakeBtn("SAVE", SystemColors.Control, SystemColors.ControlText, new Point(336, 30), new Size(52, 24));
         _btnSave.Click += BtnSave_Click;
 
         // Level meter
-        var lblLvl = new Label { Text = "Level:", Location = new Point(8, 80), Size = new Size(44, 16) };
-        _pbLevel = new ProgressBar { Location = new Point(56, 80), Size = new Size(300, 16), Minimum = 0, Maximum = 100, Style = ProgressBarStyle.Continuous };
+        var lblLvl = new Label { Text = "Level:", Location = new Point(396, 10), Size = new Size(44, 16) };
+        _pbLevel = new ProgressBar { Location = new Point(438, 10), Size = new Size(140, 16), Minimum = 0, Maximum = 100, Style = ProgressBarStyle.Continuous };
 
         // Status
         _lblStatus = new Label
         {
             Text = "Ready",
-            Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold),
-            Location = new Point(370, 80),
-            Size = new Size(200, 20)
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
+            Location = new Point(396, 32),
+            Size = new Size(120, 20)
         };
 
-        _lblDuration = new Label { Text = "0:00:00", Location = new Point(580, 80), Size = new Size(100, 20) };
+        _lblDuration = new Label { Text = "0:00:00", Location = new Point(520, 32), Size = new Size(90, 20) };
 
         // Playback progress
-        var lblPb = new Label { Text = "Progress:", Location = new Point(8, 102), Size = new Size(60, 16) };
-        _pbPlayback = new ProgressBar { Location = new Point(72, 102), Size = new Size(680, 16), Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top, Minimum = 0, Maximum = 1000, Style = ProgressBarStyle.Continuous };
+        _pbPlayback = new ProgressBar { Location = new Point(612, 32), Size = new Size(132, 16), Anchor = AnchorStyles.Right | AnchorStyles.Top, Minimum = 0, Maximum = 1000, Style = ProgressBarStyle.Continuous };
 
         topPanel.Controls.AddRange(new Control[] {
             lblDev, _cboInputDevice, lblBit, _cboBitrate,
             _btnRecord, _btnStop, _btnPlay, _btnPause, _btnOpen, _btnSave,
             lblLvl, _pbLevel, _lblStatus, _lblDuration,
-            lblPb, _pbPlayback
+            _pbPlayback
         });
-        topPanel.SizeChanged += (s, e) => _pbPlayback.Width = topPanel.Width - 80;
+        topPanel.SizeChanged += (s, e) => _pbPlayback.Left = topPanel.Width - _pbPlayback.Width - 8;
+
+        _wavePreview = new WavePreviewPanel { Dock = DockStyle.Fill, Margin = new Padding(4) };
 
         // ── Timer section ───────────────────────────────────────────────────
         var timerGroup = new GroupBox
         {
             Text = "Recording Timer",
-            Location = new Point(0, 130),
+            Location = new Point(0, 58),
             Height = 54,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             BackColor = SystemColors.Control,
@@ -176,42 +178,55 @@ public class RecorderForm : Form
         var listGroup = new GroupBox
         {
             Text = "Recordings",
-            Location = new Point(0, 184),
+            Location = new Point(0, 112),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
         listGroup.SizeChanged += (s, e) =>
         {
             listGroup.Width = ClientSize.Width;
-            listGroup.Height = ClientSize.Height - 184;
+            listGroup.Height = ClientSize.Height - 112;
         };
 
         _lstRecordings = new ListBox
         {
-            Location = new Point(4, 18),
+            Location = new Point(4, 20),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
             Font = new Font("Microsoft Sans Serif", 8f)
         };
         _lstRecordings.DoubleClick += (s, e) => PlaySelectedRecording();
-        listGroup.Controls.Add(_lstRecordings);
-        listGroup.SizeChanged += (s, e) => _lstRecordings.Size = new Size(listGroup.ClientSize.Width - 8, listGroup.ClientSize.Height - 22);
+        listGroup.SizeChanged += (s, e) => _lstRecordings.Size = new Size(220, listGroup.ClientSize.Height - 52);
 
-        var btnRefresh = new Button { Text = "⟳ Refresh", Location = new Point(4, 18), Size = new Size(80, 22), FlatStyle = FlatStyle.System };
+        var btnRefresh = new Button { Text = "Refresh", Location = new Point(4, 22), Size = new Size(66, 22), FlatStyle = FlatStyle.System };
         btnRefresh.Click += (s, e) => RefreshRecordingList();
 
-        var btnDelete = new Button { Text = "🗑 Delete", Location = new Point(90, 18), Size = new Size(80, 22), FlatStyle = FlatStyle.System };
+        var btnDelete = new Button { Text = "Delete", Location = new Point(74, 22), Size = new Size(66, 22), FlatStyle = FlatStyle.System };
         btnDelete.Click += BtnDeleteRecording_Click;
 
-        var btnOpenFolder = new Button { Text = "📂 Open Folder", Location = new Point(180, 18), Size = new Size(110, 22), FlatStyle = FlatStyle.System };
+        var btnOpenFolder = new Button { Text = "Folder", Location = new Point(144, 22), Size = new Size(66, 22), FlatStyle = FlatStyle.System };
         btnOpenFolder.Click += (s, e) => System.Diagnostics.Process.Start("explorer.exe", _recordingFolder);
 
-        listGroup.Controls.AddRange(new Control[] { btnRefresh, btnDelete, btnOpenFolder });
+        var waveformHost = new Panel
+        {
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = Color.Black,
+            Location = new Point(228, 20),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
+        };
+        waveformHost.Controls.Add(_wavePreview);
+
+        listGroup.Controls.AddRange(new Control[] { _lstRecordings, btnRefresh, btnDelete, btnOpenFolder, waveformHost });
+        listGroup.SizeChanged += (s, e) =>
+        {
+            _lstRecordings.Size = new Size(220, listGroup.ClientSize.Height - 52);
+            waveformHost.Size = new Size(listGroup.ClientSize.Width - 236, listGroup.ClientSize.Height - 28);
+        };
 
         SizeChanged += (s, e) =>
         {
             timerGroup.Width = ClientSize.Width;
             listGroup.Width = ClientSize.Width;
-            listGroup.Height = ClientSize.Height - 184;
+            listGroup.Height = ClientSize.Height - 112;
         };
 
         Controls.AddRange(new Control[] { topPanel, timerGroup, listGroup });
@@ -315,7 +330,11 @@ public class RecorderForm : Form
             if (level > max) max = level;
         }
         if (IsHandleCreated)
-            BeginInvoke(() => _pbLevel.Value = (int)(max * 100));
+            BeginInvoke(() =>
+            {
+                _pbLevel.Value = (int)(max * 100);
+                _wavePreview.AddSample(max);
+            });
     }
 
     private void WaveIn_RecordingStopped(object? sender, StoppedEventArgs e)
@@ -532,5 +551,43 @@ public class RecorderForm : Form
         _positionTimer.Stop();
         if (_isRecording) _waveIn?.StopRecording();
         StopPlayback();
+    }
+}
+
+internal sealed class WavePreviewPanel : Panel
+{
+    private readonly float[] _samples = new float[240];
+    private int _nextIndex;
+
+    public WavePreviewPanel()
+    {
+        DoubleBuffered = true;
+        BackColor = Color.Black;
+    }
+
+    public void AddSample(float value)
+    {
+        _samples[_nextIndex] = Math.Clamp(value, 0f, 1f);
+        _nextIndex = (_nextIndex + 1) % _samples.Length;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        e.Graphics.Clear(Color.Black);
+        using var pen = new Pen(Color.FromArgb(180, 180, 255), 1f);
+        int mid = Height / 2;
+        for (int i = 1; i < _samples.Length; i++)
+        {
+            int prevIdx = (_nextIndex + i - 1) % _samples.Length;
+            int idx = (_nextIndex + i) % _samples.Length;
+            float p = _samples[prevIdx];
+            float c = _samples[idx];
+            int x1 = (i - 1) * Width / (_samples.Length - 1);
+            int x2 = i * Width / (_samples.Length - 1);
+            e.Graphics.DrawLine(pen, x1, mid - (p * mid), x2, mid - (c * mid));
+            e.Graphics.DrawLine(pen, x1, mid + (p * mid), x2, mid + (c * mid));
+        }
     }
 }
