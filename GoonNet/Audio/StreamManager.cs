@@ -467,6 +467,7 @@ public sealed class StreamManager : IDisposable
         _disposed = true;
         Stop();
         _queue.Dispose();
+        _cts.Dispose();
     }
 
     // ── BroadcastBuffer: writes MP3 bytes to all connected clients ─────────────
