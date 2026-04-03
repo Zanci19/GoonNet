@@ -94,6 +94,7 @@ public class StudioForm : Form
     private bool _playingTransition;
     private MusicTrack? _transitionTrack;
     private TimeSpan? _pendingTransitionFadeIn;
+    private bool _manualJump;
 
     private System.Windows.Forms.Timer _clockTimer = null!;
 
@@ -133,12 +134,10 @@ public class StudioForm : Form
         // ══════════════════════════════════════════════════════════════════════
         var topPanel = new Panel
         {
-            Location = new Point(0, 0),
+            Dock = DockStyle.Top,
             Height = 196,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             BackColor = SystemColors.Control
         };
-        topPanel.SizeChanged += (s, e) => topPanel.Width = ClientSize.Width;
 
         // ---- Clock (top-right of form) ----
         _lblClock = new Label
@@ -376,12 +375,10 @@ public class StudioForm : Form
         // ══════════════════════════════════════════════════════════════════════
         var streamBar = new Panel
         {
-            Location = new Point(0, 196),
+            Dock = DockStyle.Top,
             Height = 28,
-            BackColor = Color.FromArgb(30, 30, 45),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            BackColor = Color.FromArgb(30, 30, 45)
         };
-        streamBar.SizeChanged += (s, e) => streamBar.Width = ClientSize.Width;
 
         _lblStreamStatus = new Label
         {
@@ -413,15 +410,13 @@ public class StudioForm : Form
         // PITCH & SPEED BAR
         // ══════════════════════════════════════════════════════════════════════
         _pitchSpeedBar = BuildPitchSpeedBar();
-        _pitchSpeedBar.Location = new Point(0, 224);
-        _pitchSpeedBar.SizeChanged += (s, e) => _pitchSpeedBar.Width = ClientSize.Width;
+        _pitchSpeedBar.Dock = DockStyle.Top;
 
         // ══════════════════════════════════════════════════════════════════════
         // STUDIO TOOLS BAR  (transition sounds + microphone talkover)
         // ══════════════════════════════════════════════════════════════════════
         _studioToolsBar = BuildStudioToolsBar();
-        _studioToolsBar.Location = new Point(0, 288);
-        _studioToolsBar.SizeChanged += (s, e) => _studioToolsBar.Width = ClientSize.Width;
+        _studioToolsBar.Dock = DockStyle.Top;
 
         // ══════════════════════════════════════════════════════════════════════
         // LARGE SPECTRUM ANALYZER
@@ -429,14 +424,12 @@ public class StudioForm : Form
         var spectrumPanel = new GroupBox
         {
             Text = "SPECTRUM ANALYZER",
-            Location = new Point(0, 368),   // 288 + 80 toolsBar height
+            Dock = DockStyle.Top,
             Height = 280,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
             BackColor = Color.Black,
             ForeColor = Color.FromArgb(0, 200, 0)
         };
-        spectrumPanel.SizeChanged += (s, e) => spectrumPanel.Width = ClientSize.Width;
 
         _spectrum = new SpectrumAnalyzer
         {
@@ -455,8 +448,7 @@ public class StudioForm : Form
         var playlistPanel = new GroupBox
         {
             Text = "CURRENT PLAYLIST",
-            Location = new Point(0, 648),   // 368 + 280 = 648
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
+            Dock = DockStyle.Fill,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
@@ -480,27 +472,14 @@ public class StudioForm : Form
 
         playlistPanel.Controls.Add(_lvPlaylist);
 
-        // Wire up SizeChanged to keep all panels filling the space
+        // Wire up SizeChanged to keep inner panels sized correctly
         SizeChanged += (s, e) =>
         {
-            topPanel.Width = ClientSize.Width;
-            streamBar.Width = ClientSize.Width;
-            _pitchSpeedBar.Width = ClientSize.Width;
-            _studioToolsBar.Width = ClientSize.Width;
-            spectrumPanel.Width = ClientSize.Width;
             rightPanel.Width = ClientSize.Width - 614;
-
-            playlistPanel.Location = new Point(0, 648);
-            playlistPanel.Size = new Size(ClientSize.Width, ClientSize.Height - 648);
             _lvPlaylist.Size = new Size(playlistPanel.ClientSize.Width - 8, playlistPanel.ClientSize.Height - 22);
-
-            _btnStreamSettings.Location = new Point(streamBar.Width - 130, 3);
         };
 
         Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, _studioToolsBar, spectrumPanel, playlistPanel });
-
-        // Fire SizeChanged once to initialize sizes
-        OnSizeChanged(EventArgs.Empty);
     }
 
     private Panel BuildPitchSpeedBar()
@@ -508,8 +487,7 @@ public class StudioForm : Form
         var bar = new Panel
         {
             Height = 64,
-            BackColor = Color.FromArgb(20, 22, 34),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            BackColor = Color.FromArgb(20, 22, 34)
         };
 
         // ── LEFT: Playlist selector + session save ──────────────────────────
@@ -809,8 +787,7 @@ public class StudioForm : Form
         var bar = new Panel
         {
             Height = 80,
-            BackColor = Color.FromArgb(25, 28, 38),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            BackColor = Color.FromArgb(25, 28, 38)
         };
 
         // ── LEFT: Transition sound controls ────────────────────────────────
@@ -1072,7 +1049,8 @@ public class StudioForm : Form
                 else
                 {
                     _pendingTransitionFadeIn = null;
-                    if (_autoPlay) PlayNext();
+                    if (_autoPlay && !_manualJump) PlayNext();
+                    _manualJump = false;
                 }
             });
         };
@@ -1335,15 +1313,23 @@ public class StudioForm : Form
 
     private void EnsureDisplayFields(PlaylistItem item)
     {
-        if (!string.IsNullOrWhiteSpace(item.Artist) && !string.IsNullOrWhiteSpace(item.Title))
+        bool missingArtistTitle = string.IsNullOrWhiteSpace(item.Artist) || string.IsNullOrWhiteSpace(item.Title);
+        bool missingDuration = !item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero;
+
+        if (!missingArtistTitle && !missingDuration)
             return;
 
         var track = MusicDb?.GetById(item.TrackId);
         if (track == null) return;
-        item.Artist = track.Artist;
-        item.Title = track.Title;
-        if (!item.Duration.HasValue || item.Duration.Value <= TimeSpan.Zero)
-            item.Duration = track.Duration > TimeSpan.Zero ? track.Duration : null;
+
+        if (missingArtistTitle)
+        {
+            item.Artist = track.Artist;
+            item.Title = track.Title;
+        }
+
+        if (missingDuration && track.Duration > TimeSpan.Zero)
+            item.Duration = track.Duration;
     }
 
     private void PlayNext()
@@ -1370,6 +1356,7 @@ public class StudioForm : Form
     private void BtnNext_Click(object? sender, EventArgs e)
     {
         MarkCurrentPlayed();
+        _manualJump = true;
         AudioEngine.Instance.Stop();
         PlayNext();
     }
@@ -1515,6 +1502,7 @@ public class StudioForm : Form
         if (_lvPlaylist.SelectedItems.Count == 0) return;
         int idx = (int)(_lvPlaylist.SelectedItems[0].Tag ?? 0);
         MarkCurrentPlayed();
+        _manualJump = true;
         AudioEngine.Instance.Stop();
         _currentIndex = idx;
         PlayCurrent();

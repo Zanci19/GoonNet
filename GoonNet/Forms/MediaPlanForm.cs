@@ -38,7 +38,7 @@ public class MediaPlanForm : Form
         Font = new Font("Microsoft Sans Serif", 8f);
 
         // ── Toolbar ─────────────────────────────────────────────────────────
-        var toolbar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = Color.FromArgb(235, 238, 250) };
+        var toolbar = new Panel { Dock = DockStyle.Top, Height = 32, BackColor = SystemColors.Control };
 
         var lblDay = new Label { Text = "Day:", Location = new Point(6, 8), Size = new Size(30, 16) };
         _cboDayFilter = new ComboBox { Location = new Point(38, 5), Size = new Size(110, 22), DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.System };

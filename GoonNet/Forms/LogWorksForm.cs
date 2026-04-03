@@ -39,7 +39,7 @@ public class LogWorksForm : Form
         Font = new Font("Microsoft Sans Serif", 8f);
 
         // ── Filter bar ──────────────────────────────────────────────────────
-        var filterBar = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Color.FromArgb(235, 238, 250) };
+        var filterBar = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = SystemColors.Control };
 
         var lblFrom = new Label { Text = "From:", Location = new Point(6, 9), Size = new Size(36, 16) };
         _dtpFrom = new DateTimePicker { Location = new Point(44, 5), Size = new Size(130, 22), Format = DateTimePickerFormat.Short, Value = DateTime.Today };
@@ -65,7 +65,7 @@ public class LogWorksForm : Form
         filterBar.Controls.AddRange(new Control[] { lblFrom, _dtpFrom, lblTo, _dtpTo, lblType, _cboType, lblSearch, _txtSearch, _btnFilter, _btnExport });
 
         // ── Summary bar ─────────────────────────────────────────────────────
-        var summaryBar = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.FromArgb(225, 228, 245) };
+        var summaryBar = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = SystemColors.Control };
         _lblCount = new Label { Text = "0 entries", Location = new Point(6, 6), Size = new Size(100, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
         _lblTotalMusic = new Label { Text = "Music: 0", Location = new Point(120, 6), Size = new Size(120, 16) };
         _lblTotalAds = new Label { Text = "Ads: 0", Location = new Point(250, 6), Size = new Size(120, 16) };
