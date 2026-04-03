@@ -103,6 +103,7 @@ public sealed class StreamManager : IDisposable
     public void Start()
     {
         if (IsStreaming) return;
+        _cts.Dispose();
         _cts = new CancellationTokenSource();
 
         // Try binding to all interfaces first (allows LAN access); then explicit local IP;
@@ -169,6 +170,10 @@ public sealed class StreamManager : IDisposable
             StatusChanged?.Invoke(this,
                 $"For LAN access on Windows, run once as admin: netsh http add urlacl url=http://+:{Port}/ user=Everyone");
         }
+        else if (bindMode == "local-ip")
+        {
+            StatusChanged?.Invoke(this, $"Streaming on http://{localIp}:{Port}/stream");
+        }
         else
         {
             StatusChanged?.Invoke(this, $"Streaming on http://{localIp}:{Port}/stream  (also http://localhost:{Port}/stream)");
@@ -184,6 +189,9 @@ public sealed class StreamManager : IDisposable
         try { _listener?.Close(); } catch { }
         _listener = null;
         _broadcast.CloseAll();
+        // Wait for the encode thread to finish so the encoder is not disposed while
+        // it is still being written to by EncodeLoop.
+        _encodeThread?.Join(TimeSpan.FromSeconds(2));
         _encoder?.Dispose();
         _encoder = null;
         _encoderFormat = null;
@@ -459,6 +467,7 @@ public sealed class StreamManager : IDisposable
         _disposed = true;
         Stop();
         _queue.Dispose();
+        _cts.Dispose();
     }
 
     // ── BroadcastBuffer: writes MP3 bytes to all connected clients ─────────────
