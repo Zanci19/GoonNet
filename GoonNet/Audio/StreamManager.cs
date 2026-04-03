@@ -45,8 +45,10 @@ public sealed class StreamManager : IDisposable
     private readonly BroadcastBuffer _broadcast = new();
     private LameMP3FileWriter? _encoder;
     private WaveFormat? _encoderFormat;
+    // Keep this queue intentionally short so listeners stay near-live even under load.
+    // When full we drop oldest audio frames and keep the newest samples.
     private readonly BlockingCollection<(float[] samples, int count, WaveFormat format)> _queue
-        = new(boundedCapacity: 30);
+        = new(boundedCapacity: 12);
     private SampleAggregator? _currentAggregator;
     private bool _disposed;
 
@@ -81,7 +83,7 @@ public sealed class StreamManager : IDisposable
         if (_broadcast.ClientCount == 0) return;
         var copy = new float[e.Count];
         Array.Copy(e.Samples, copy, e.Count);
-        _queue.TryAdd((copy, e.Count, e.WaveFormat));
+        EnqueueLatest((copy, e.Count, e.WaveFormat));
     }
 
     /// <summary>Injects microphone samples directly into the stream (for live announce/talkover).</summary>
@@ -95,7 +97,21 @@ public sealed class StreamManager : IDisposable
         _lastSeenFormat = normalizedFormat;
         var copy = new float[normalizedCount];
         Array.Copy(normalizedSamples, copy, normalizedCount);
-        _queue.TryAdd((copy, normalizedCount, normalizedFormat));
+        EnqueueLatest((copy, normalizedCount, normalizedFormat));
+    }
+
+    /// <summary>
+    /// Enqueue fresh samples for encoding while preferring low latency over completeness.
+    /// If the queue is full, discard oldest buffered chunk(s) so we remain close to real time.
+    /// </summary>
+    private void EnqueueLatest((float[] samples, int count, WaveFormat format) item)
+    {
+        if (_queue.TryAdd(item))
+            return;
+
+        // Queue is full. Remove stale buffered audio and retry quickly.
+        _queue.TryTake(out _);
+        _queue.TryAdd(item);
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -535,8 +551,8 @@ public sealed class StreamManager : IDisposable
     {
         private readonly Stream _stream;
         private readonly ManualResetEventSlim _done = new();
-        // Holds at most 32 encoded MP3 chunks (~3 s at 128 kbps) per client.
-        private readonly BlockingCollection<byte[]> _writeQueue = new(boundedCapacity: 32);
+        // Keep per-client buffering low; larger queues increase perceived latency.
+        private readonly BlockingCollection<byte[]> _writeQueue = new(boundedCapacity: 12);
         private volatile bool _isClosed;
 
         public StreamClient(Stream stream)
