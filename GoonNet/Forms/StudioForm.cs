@@ -108,387 +108,103 @@ public class StudioForm : Form
 
     private void InitializeComponent()
     {
-        Text = "Studio";
-        Size = new Size(1060, 810);
-        MinimumSize = new Size(860, 700);
+        Text = "GoonNet Studio";
+        ClientSize = new Size(1024, 768);
+        MinimumSize = new Size(980, 700);
         BackColor = SystemColors.Control;
         Font = new Font("Microsoft Sans Serif", 8f);
         KeyPreview = true;
 
-        // ══════════════════════════════════════════════════════════════════════
-        // TOP CONTROLS PANEL (fixed height, stretches horizontally)
-        // ══════════════════════════════════════════════════════════════════════
-        var topPanel = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 204,
-            BackColor = SystemColors.Control
-        };
-
-        var topLayout = new TableLayoutPanel
+        var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 4,
-            RowCount = 1,
-            Padding = new Padding(8, 4, 8, 4),
-            BackColor = SystemColors.Control
+            RowCount = 4,
+            ColumnCount = 1,
+            Margin = Padding.Empty,
+            Padding = new Padding(2)
         };
-        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 360));
-        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260));
-        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 190));
-        topLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-        topLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 126));
 
-        // ---- Clock (top-right of form) ----
-        _lblClock = new Label
-        {
-            Text = DateTime.Now.ToString("HH:mm:ss"),
-            Font = new Font("Microsoft Sans Serif", 22f, FontStyle.Bold),
-            ForeColor = Color.Navy,
-            Size = new Size(200, 42),
-            TextAlign = ContentAlignment.MiddleRight,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-
-        // ---- NOW PLAYING PANEL ----
-        var nowPanel = new GroupBox
-        {
-            Text = "NOW PLAYING",
-            Dock = DockStyle.Fill,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-
-        _lblArtist = new Label
-        {
-            Text = "--- No Track Loaded ---",
-            Font = new Font("Microsoft Sans Serif", 11f, FontStyle.Bold),
-            ForeColor = Color.Navy,
-            Location = new Point(6, 18),
-            Size = new Size(348, 22),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-        _lblTitle = new Label
-        {
-            Text = string.Empty,
-            Font = new Font("Microsoft Sans Serif", 9f),
-            Location = new Point(6, 42),
-            Size = new Size(348, 18),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-        _progressBar = new ProgressBar
-        {
-            Location = new Point(6, 68),
-            Size = new Size(288, 16),
-            Minimum = 0,
-            Maximum = 1000,
-            Style = ProgressBarStyle.Continuous,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        _lblElapsed = new Label
-        {
-            Text = "0:00",
-            Location = new Point(6, 88),
-            Size = new Size(80, 16),
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-        _lblRemaining = new Label
-        {
-            Text = "-0:00",
-            Location = new Point(220, 88),
-            Size = new Size(80, 16),
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = new Font("Microsoft Sans Serif", 8f)
-        };
-
-        var lblIntro = new Label { Text = "Intro:", Location = new Point(6, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
-        _lblIntroValue = new Label { Text = "--", Location = new Point(44, 114), Size = new Size(30, 13), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold), ForeColor = Color.DarkGreen };
-        var lblVoiceOut = new Label { Text = "VoiceOut:", Location = new Point(78, 114), Size = new Size(55, 13), Font = new Font("Microsoft Sans Serif", 7f) };
-        _lblVoiceOutValue = new Label { Text = "--", Location = new Point(132, 114), Size = new Size(30, 13), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold), ForeColor = Color.Maroon };
-        var lblMixIn = new Label { Text = "MixIn:", Location = new Point(165, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
-        _lblMixInValue = new Label { Text = "--", Location = new Point(206, 114), Size = new Size(30, 13), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold), ForeColor = Color.Navy };
-
-        nowPanel.Controls.AddRange(new Control[] { _lblArtist, _lblTitle, _progressBar, _lblElapsed, _lblRemaining, lblIntro, _lblIntroValue, lblVoiceOut, _lblVoiceOutValue, lblMixIn, _lblMixInValue });
-
-        // ---- PLAYBACK CONTROLS ----
-        var ctrlPanel = new GroupBox
-        {
-            Text = "CONTROLS",
-            Dock = DockStyle.Fill,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-
-        _btnPlayPause = new Button
-        {
-            Text = "▶ PLAY",
-            Location = new Point(8, 20),
-            Size = new Size(118, 32),
-            BackColor = Color.FromArgb(200, 255, 200),
-            FlatStyle = FlatStyle.System,
-            Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold)
-        };
-        _btnPlayPause.Click += BtnPlayPause_Click;
-
-        _btnStop = new Button
-        {
-            Text = "■ STOP",
-            Location = new Point(132, 20),
-            Size = new Size(118, 32),
-            BackColor = Color.FromArgb(255, 200, 200),
-            FlatStyle = FlatStyle.System,
-            Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold)
-        };
-        _btnStop.Click += (s, e) => { AudioEngine.Instance.Stop(); UpdatePlaylistStatus(); };
-
-        _btnNext = new Button { Text = "⏭ NEXT", Location = new Point(8, 58), Size = new Size(118, 24), FlatStyle = FlatStyle.System };
-        _btnNext.Click += BtnNext_Click;
-
-        _btnCue = new Button { Text = "CUE", Location = new Point(132, 58), Size = new Size(118, 24), FlatStyle = FlatStyle.System };
-        _btnCue.Click += BtnCue_Click;
-
-        _btnFadeOut = new Button { Text = "FADE OUT", Location = new Point(8, 86), Size = new Size(242, 22), FlatStyle = FlatStyle.System };
-        _btnFadeOut.Click += (s, e) => AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromSeconds(5));
-
-        _btnPanic = new Button
-        {
-            Text = "⚡ PANIC",
-            Location = new Point(8, 112),
-            Size = new Size(242, 22),
-            BackColor = Color.FromArgb(200, 50, 50),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.System,
-            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold)
-        };
-        _btnPanic.Click += BtnPanic_Click;
-
-        var lblVol = new Label { Text = "Volume:", Location = new Point(8, 138), Size = new Size(52, 16) };
-        _volumeSlider = new TrackBar
-        {
-            Location = new Point(62, 132),
-            Size = new Size(156, 26),
-            Minimum = 0,
-            Maximum = 100,
-            Value = 85,
-            TickFrequency = 10,
-            TickStyle = TickStyle.None
-        };
-        _volumeSlider.ValueChanged += (s, e) =>
-        {
-            AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f;
-            _lblVolume.Text = _volumeSlider.Value + "%";
-        };
-        _lblVolume = new Label { Text = "85%", Location = new Point(221, 138), Size = new Size(30, 16) };
-
-        _chkAutoPlay = new CheckBox { Text = "Auto-Play", Location = new Point(8, 164), Checked = true };
-        _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
-
-        var btnReminder = new Button { Text = "🔔 Reminder...", Location = new Point(100, 163), Size = new Size(150, 20), FlatStyle = FlatStyle.System, Font = new Font("Microsoft Sans Serif", 7f) };
-        btnReminder.Click += BtnReminder_Click;
-
-        var sliderPanel = new Panel
+        // top info strip
+        var topStrip = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(20, 22, 34),
-            BorderStyle = BorderStyle.FixedSingle
+            ColumnCount = 5,
+            BackColor = Color.Black,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
+            Margin = Padding.Empty
         };
-        var lblPitch = new Label { Text = "Pitch", Location = new Point(8, 8), Size = new Size(48, 16), ForeColor = Color.FromArgb(180, 200, 255), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _pitchSlider = new TrackBar { Location = new Point(56, 4), Size = new Size(92, 28), Minimum = -24, Maximum = 24, Value = 0, TickFrequency = 6, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
-        _pitchSlider.ValueChanged += PitchSlider_Changed;
-        _lblPitchVal = new Label { Text = "0 st", Location = new Point(150, 8), Size = new Size(34, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+        topStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        topStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 300));
+        topStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        topStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        topStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
 
-        var lblTempo = new Label { Text = "Tempo", Location = new Point(8, 58), Size = new Size(48, 16), ForeColor = Color.FromArgb(255, 210, 130), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _tempoSlider = new TrackBar { Location = new Point(56, 54), Size = new Size(92, 28), Minimum = -50, Maximum = 100, Value = 0, TickFrequency = 25, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
-        _tempoSlider.ValueChanged += TempoSlider_Changed;
-        _lblTempoVal = new Label { Text = "0%", Location = new Point(150, 58), Size = new Size(34, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+        var meterPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
+        var lblLvl = new Label { Text = "-156.01", ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(8, 6), Size = new Size(98, 14), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
+        _vuLeft = new VUMeter { Location = new Point(8, 24), Size = new Size(44, 46) };
+        _vuRight = new VUMeter { Location = new Point(56, 24), Size = new Size(44, 46) };
+        meterPanel.Controls.AddRange(new Control[] { lblLvl, _vuLeft, _vuRight });
 
-        var lblRate = new Label { Text = "Rate", Location = new Point(8, 108), Size = new Size(48, 16), ForeColor = Color.FromArgb(200, 255, 200), Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold) };
-        _rateSlider = new TrackBar { Location = new Point(56, 104), Size = new Size(92, 28), Minimum = -50, Maximum = 100, Value = 0, TickFrequency = 25, TickStyle = TickStyle.None, BackColor = Color.FromArgb(20, 22, 34) };
-        _rateSlider.ValueChanged += RateSlider_Changed;
-        _lblRateVal = new Label { Text = "x1.00", Location = new Point(150, 108), Size = new Size(36, 16), ForeColor = Color.Silver, Font = new Font("Microsoft Sans Serif", 7.5f) };
+        var titlePanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
+        _lblArtist = new Label { Text = "Shadow Gallery - Mystery", ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(8, 6), Size = new Size(288, 18), Font = new Font("Microsoft Sans Serif", 11f, FontStyle.Bold) };
+        _lblTitle = new Label { Text = "DREAM THEATER - LEARNING TO LIVE", ForeColor = Color.Gold, BackColor = Color.Black, Location = new Point(8, 30), Size = new Size(288, 18), Font = new Font("Microsoft Sans Serif", 11f, FontStyle.Italic) };
+        _progressBar = new ProgressBar { Location = new Point(8, 54), Size = new Size(288, 14), Style = ProgressBarStyle.Continuous, Minimum = 0, Maximum = 1000, Value = 0 };
+        titlePanel.Controls.AddRange(new Control[] { _lblArtist, _lblTitle, _progressBar });
 
-        var btnResetPitch = new Button { Text = "Reset", Location = new Point(124, 136), Size = new Size(56, 22), FlatStyle = FlatStyle.Flat, ForeColor = Color.Silver, BackColor = Color.FromArgb(40, 40, 55), Font = new Font("Microsoft Sans Serif", 7f) };
-        btnResetPitch.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 100);
-        btnResetPitch.Click += (s, e) => ResetPitchSpeed();
-        sliderPanel.Controls.AddRange(new Control[] { lblPitch, _pitchSlider, _lblPitchVal, lblTempo, _tempoSlider, _lblTempoVal, lblRate, _rateSlider, _lblRateVal, btnResetPitch });
+        var timePanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
+        _lblElapsed = new Label { Text = "34:7.5", ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(8, 6), Size = new Size(60, 14), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
+        _lblRemaining = new Label { Text = "-17:05.44", ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(8, 24), Size = new Size(118, 14), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
+        _lblIntroValue = new Label { Text = "0:00", ForeColor = Color.Cyan, BackColor = Color.Black, Location = new Point(8, 44), Size = new Size(36, 14), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold) };
+        _lblVoiceOutValue = new Label { Text = "0:00", ForeColor = Color.Orange, BackColor = Color.Black, Location = new Point(48, 44), Size = new Size(36, 14), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold) };
+        _lblMixInValue = new Label { Text = "0:00", ForeColor = Color.DeepSkyBlue, BackColor = Color.Black, Location = new Point(88, 44), Size = new Size(36, 14), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold) };
+        timePanel.Controls.AddRange(new Control[] { _lblElapsed, _lblRemaining, _lblIntroValue, _lblVoiceOutValue, _lblMixInValue });
 
-        ctrlPanel.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, _btnPanic, lblVol, _volumeSlider, _lblVolume, _chkAutoPlay, btnReminder });
+        var statusPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
+        _lblClock = new Label { Text = DateTime.Now.ToString("HH:mm:ss"), ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(6, 6), Size = new Size(120, 18), TextAlign = ContentAlignment.MiddleRight, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+        _lblOnAir = new Label { Text = "Manko Vitez", ForeColor = Color.Blue, BackColor = Color.Black, Location = new Point(8, 30), Size = new Size(240, 18), Font = new Font("Microsoft Sans Serif", 10f, FontStyle.Bold) };
+        _lblReminder = new Label { Text = string.Empty, ForeColor = Color.Gold, BackColor = Color.Black, Location = new Point(8, 52), Size = new Size(280, 16), Visible = false };
+        statusPanel.Controls.AddRange(new Control[] { _lblClock, _lblOnAir, _lblReminder });
 
-        // Reminder display label (in the top panel, below ctrlPanel area)
-        _lblReminder = new Label
-        {
-            Location = new Point(376, 196),
-            Size = new Size(400, 0),
-            ForeColor = Color.FromArgb(255, 220, 80),
-            BackColor = Color.FromArgb(60, 50, 10),
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft,
-            Visible = false,
-            BorderStyle = BorderStyle.FixedSingle
-        };
-        topPanel.Controls.Add(_lblReminder);
+        var genrePanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
+        _lblNextArtist = new Label { Text = "ProgMetal", ForeColor = Color.Lime, BackColor = Color.Black, Location = new Point(8, 8), Size = new Size(98, 18), Font = new Font("Microsoft Sans Serif", 10f, FontStyle.Bold) };
+        _lblNextTitle = new Label { Text = "ProgMetal", ForeColor = Color.Gold, BackColor = Color.Black, Location = new Point(8, 34), Size = new Size(98, 18), Font = new Font("Microsoft Sans Serif", 10f, FontStyle.Bold) };
+        _lblNextDuration = new Label { Text = "", Visible = false };
+        genrePanel.Controls.AddRange(new Control[] { _lblNextArtist, _lblNextTitle });
 
-        // ---- RIGHT PANEL (UP NEXT + PREVIEW + CLOCK, grows horizontally) ----
-        var rightPanel = new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = SystemColors.Control
-        };
+        topStrip.Controls.Add(meterPanel, 0, 0);
+        topStrip.Controls.Add(titlePanel, 1, 0);
+        topStrip.Controls.Add(timePanel, 2, 0);
+        topStrip.Controls.Add(statusPanel, 3, 0);
+        topStrip.Controls.Add(genrePanel, 4, 0);
 
-        // Position clock at top-right of rightPanel
-        _lblClock.Location = new Point(rightPanel.Width - 208, 0);
-        _lblClock.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        _lblOnAir = new Label
-        {
-            Text = "OFF AIR",
-            Location = new Point(238, 10),
-            Size = new Size(96, 24),
-            TextAlign = ContentAlignment.MiddleCenter,
-            BackColor = Color.FromArgb(70, 20, 20),
-            ForeColor = Color.FromArgb(255, 180, 180),
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
-            BorderStyle = BorderStyle.FixedSingle
-        };
-
-        var nextPanel = new GroupBox
-        {
-            Text = "UP NEXT",
-            Location = new Point(0, 0),
-            Size = new Size(402, 100),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-        _lblNextArtist = new Label { Text = "---", Location = new Point(6, 18), Size = new Size(340, 18), Font = new Font("Microsoft Sans Serif", 9f, FontStyle.Bold), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        _lblNextTitle = new Label { Text = string.Empty, Location = new Point(6, 38), Size = new Size(340, 16), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        _lblNextDuration = new Label { Text = string.Empty, Location = new Point(6, 58), Size = new Size(150, 14), Font = new Font("Microsoft Sans Serif", 7f) };
-        _btnLoadNext = new Button { Text = "Load Next", Location = new Point(158, 54), Size = new Size(80, 22), FlatStyle = FlatStyle.System };
-        _btnLoadNext.Click += BtnLoadNext_Click;
-        nextPanel.Controls.AddRange(new Control[] { _lblNextArtist, _lblNextTitle, _lblNextDuration, _btnLoadNext });
-
-        var previewPanel = new GroupBox
-        {
-            Text = "PREVIEW / MONITOR",
-            Location = new Point(0, 108),
-            Size = new Size(402, 74),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(6, 18), Size = new Size(346, 14), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        _btnPreviewPlay = new Button { Text = "▶", Location = new Point(6, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
-        _btnPreviewPlay.Click += BtnPreviewPlay_Click;
-        _btnPreviewStop = new Button { Text = "■", Location = new Point(46, 36), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
-        _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
-        var lblPreviewVol = new Label { Text = "Vol:", Location = new Point(90, 40), Size = new Size(28, 16) };
-        _previewVolumeSlider = new TrackBar { Location = new Point(118, 34), Size = new Size(110, 28), Minimum = 0, Maximum = 100, Value = 80, TickFrequency = 20 };
-        _previewVolumeSlider.ValueChanged += (s, e) => AudioEngine.Instance.PreviewVolume = _previewVolumeSlider.Value / 100f;
-        previewPanel.Controls.AddRange(new Control[] { _lblPreviewTrack, _btnPreviewPlay, _btnPreviewStop, lblPreviewVol, _previewVolumeSlider });
-
-        rightPanel.Controls.AddRange(new Control[] { _lblClock, _lblOnAir, nextPanel, previewPanel });
-        rightPanel.SizeChanged += (s, e) =>
-        {
-            _lblClock.Location = new Point(Math.Max(0, rightPanel.ClientSize.Width - _lblClock.Width - 2), 0);
-            _lblOnAir.Location = new Point(Math.Max(6, rightPanel.ClientSize.Width - _lblClock.Width - _lblOnAir.Width - 12), 10);
-            nextPanel.Width = rightPanel.ClientSize.Width;
-            previewPanel.Width = rightPanel.ClientSize.Width;
-            _lblNextArtist.Width = Math.Max(180, nextPanel.ClientSize.Width - 60);
-            _lblNextTitle.Width = Math.Max(180, nextPanel.ClientSize.Width - 60);
-            _lblPreviewTrack.Width = Math.Max(180, previewPanel.ClientSize.Width - 56);
-        };
-
-        topLayout.Controls.Add(nowPanel, 0, 0);
-        topLayout.Controls.Add(ctrlPanel, 1, 0);
-        topLayout.Controls.Add(sliderPanel, 2, 0);
-        topLayout.Controls.Add(rightPanel, 3, 0);
-        topPanel.Controls.Add(topLayout);
-
-        // ══════════════════════════════════════════════════════════════════════
-        // STREAMING STATUS BAR
-        // ══════════════════════════════════════════════════════════════════════
-        var streamBar = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 28,
-            BackColor = Color.FromArgb(30, 30, 45)
-        };
-
-        _lblStreamStatus = new Label
-        {
-            Text = "🔴  Stream: OFF  —  Click 'Stream Settings' to enable web streaming",
-            ForeColor = Color.FromArgb(180, 180, 200),
-            Font = new Font("Microsoft Sans Serif", 8f),
-            Location = new Point(6, 5),
-            Size = new Size(750, 18),
-            TextAlign = ContentAlignment.MiddleLeft,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-
-        _btnStreamSettings = new Button
-        {
-            Text = "📡 Stream Settings",
-            Location = new Point(streamBar.Width - 130, 3),
-            Size = new Size(126, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.FromArgb(180, 220, 255),
-            BackColor = Color.FromArgb(50, 70, 100),
-            Font = new Font("Microsoft Sans Serif", 7.5f),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-        _btnStreamSettings.FlatAppearance.BorderColor = Color.FromArgb(80, 110, 160);
-        _btnStreamSettings.Click += (s, e) => OpenStreamingForm();
-        streamBar.Controls.AddRange(new Control[] { _lblStreamStatus, _btnStreamSettings });
-
-        // ══════════════════════════════════════════════════════════════════════
-        // PITCH & SPEED BAR
-        // ══════════════════════════════════════════════════════════════════════
-        _pitchSpeedBar = BuildPitchSpeedBar();
-        _pitchSpeedBar.Dock = DockStyle.Top;
-
-        // ══════════════════════════════════════════════════════════════════════
-        // STEREO VU METER PANEL (L / R)
-        // ══════════════════════════════════════════════════════════════════════
-        var stereoPanel = new GroupBox
-        {
-            Text = "MASTER VU (2-CHANNEL)",
-            Dock = DockStyle.Top,
-            Height = 170,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-
-        _vuLeft = new VUMeter { Location = new Point(40, 24), Size = new Size(40, 130) };
-        _vuRight = new VUMeter { Location = new Point(110, 24), Size = new Size(40, 130) };
-        var lblL = new Label { Text = "L", Location = new Point(50, 134), Size = new Size(20, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
-        var lblR = new Label { Text = "R", Location = new Point(120, 134), Size = new Size(20, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
-        _btnMix2Ch = new Button { Text = "2CH MIX NEXT", Location = new Point(190, 62), Size = new Size(130, 28), FlatStyle = FlatStyle.System };
-        _btnMix2Ch.Click += BtnMix2Ch_Click;
-        stereoPanel.Controls.AddRange(new Control[] { _vuLeft, _vuRight, lblL, lblR, _btnMix2Ch });
-
-        // ══════════════════════════════════════════════════════════════════════
-        // PLAYLIST PANEL (fills remaining space)
-        // ══════════════════════════════════════════════════════════════════════
-        var playlistPanel = new GroupBox
-        {
-            Text = "LIBRARY & CURRENT PLAYLIST",
-            Dock = DockStyle.Fill,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
-        };
-
-        var split = new SplitContainer
+        var headerStrip = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Orientation = Orientation.Vertical,
-            SplitterDistance = 350,
-            BorderStyle = BorderStyle.None
+            ColumnCount = 3,
+            BackColor = Color.Black,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
+            Margin = Padding.Empty
         };
+        headerStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 570));
+        headerStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        headerStrip.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        headerStrip.Controls.Add(new Label { Text = "Playlist", ForeColor = Color.Lime, BackColor = Color.Black, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Microsoft Sans Serif", 11f, FontStyle.Italic) }, 0, 0);
+        headerStrip.Controls.Add(new Label { Text = string.Empty, BackColor = Color.Black, Dock = DockStyle.Fill }, 1, 0);
+        headerStrip.Controls.Add(new Label { Text = "ProgMetal", ForeColor = Color.Lime, BackColor = Color.Black, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Microsoft Sans Serif", 11f, FontStyle.Italic) }, 2, 0);
 
-        _lvLibrary = new ListView
+        var center = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            View = View.Details,
-            FullRowSelect = true,
-            GridLines = true
+            ColumnCount = 2,
+            BackColor = SystemColors.Control,
+            Margin = Padding.Empty
         };
-        _lvLibrary.Columns.Add("Artist", 140);
-        _lvLibrary.Columns.Add("Title", 150);
-        _lvLibrary.Columns.Add("Duration", 60);
-        _lvLibrary.ItemDrag += LvLibrary_ItemDrag;
+        center.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        center.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 102));
 
         _lvPlaylist = new ListView
         {
@@ -496,36 +212,125 @@ public class StudioForm : Form
             View = View.Details,
             FullRowSelect = true,
             GridLines = true,
+            HeaderStyle = ColumnHeaderStyle.Nonclickable,
+            BackColor = Color.Black,
+            ForeColor = Color.Yellow,
             BorderStyle = BorderStyle.Fixed3D,
-            Font = new Font("Microsoft Sans Serif", 8f),
-            Margin = new Padding(4, 18, 4, 4)
+            Font = new Font("Microsoft Sans Serif", 8f)
         };
-        _lvPlaylist.Columns.Add("#", 32);
-        _lvPlaylist.Columns.Add("Artist", 170);
-        _lvPlaylist.Columns.Add("Title", 210);
-        _lvPlaylist.Columns.Add("Duration", 72);
-        _lvPlaylist.Columns.Add("Start", 82);
-        _lvPlaylist.Columns.Add("Status", 80);
+        _lvPlaylist.Columns.Add("time", 54);
+        _lvPlaylist.Columns.Add("#", 36);
+        _lvPlaylist.Columns.Add("Artist / Title", 390);
+        _lvPlaylist.Columns.Add("Cat", 90);
+        _lvPlaylist.Columns.Add("cue", 64);
+        _lvPlaylist.Columns.Add("dur", 64);
+        _lvPlaylist.Columns.Add("start", 64);
+        _lvPlaylist.Columns.Add("status", 90);
         _lvPlaylist.DoubleClick += LvPlaylist_DoubleClick;
         _lvPlaylist.AllowDrop = true;
         _lvPlaylist.DragEnter += LvPlaylist_DragEnter;
         _lvPlaylist.DragDrop += LvPlaylist_DragDrop;
 
-        var leftHeader = new Panel { Dock = DockStyle.Top, Height = 30 };
-        leftHeader.Controls.Add(new Label { Text = "LIBRARY (drag tracks to playlist)", AutoSize = true, Location = new Point(6, 8), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) });
-        split.Panel1.Controls.Add(_lvLibrary);
-        split.Panel1.Controls.Add(leftHeader);
+        var sideButtons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            BackColor = SystemColors.Control,
+            Padding = new Padding(4, 4, 4, 4),
+            WrapContents = false
+        };
 
-        var rightHeader = new Panel { Dock = DockStyle.Top, Height = 30 };
-        _btnEditQueuePoints = new Button { Text = "Queue Points...", Location = new Point(6, 4), Size = new Size(96, 22), FlatStyle = FlatStyle.System };
+        _btnPlayPause = new Button { Text = "Start", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnPlayPause.Click += BtnPlayPause_Click;
+        _btnStop = new Button { Text = "Stop", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnStop.Click += (s, e) => { AudioEngine.Instance.Stop(); UpdatePlaylistStatus(); };
+        _btnNext = new Button { Text = "Next", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnNext.Click += BtnNext_Click;
+        _btnCue = new Button { Text = "Cue", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnCue.Click += BtnCue_Click;
+        _btnFadeOut = new Button { Text = "Fade", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnFadeOut.Click += (s, e) => AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromSeconds(5));
+        _btnPanic = new Button { Text = "Panic", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnPanic.Click += BtnPanic_Click;
+        _btnLoadNext = new Button { Text = "Load", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnLoadNext.Click += BtnLoadNext_Click;
+        _btnEditQueuePoints = new Button { Text = "Queue", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
         _btnEditQueuePoints.Click += BtnEditQueuePoints_Click;
-        rightHeader.Controls.Add(_btnEditQueuePoints);
-        split.Panel2.Controls.Add(_lvPlaylist);
-        split.Panel2.Controls.Add(rightHeader);
+        _btnMix2Ch = new Button { Text = "2ch", Width = 86, Height = 24, FlatStyle = FlatStyle.System };
+        _btnMix2Ch.Click += BtnMix2Ch_Click;
 
-        playlistPanel.Controls.Add(split);
+        sideButtons.Controls.AddRange(new Control[] { _btnPlayPause, _btnStop, _btnNext, _btnCue, _btnFadeOut, _btnPanic, _btnLoadNext, _btnEditQueuePoints, _btnMix2Ch });
 
-        Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, stereoPanel, playlistPanel });
+        center.Controls.Add(_lvPlaylist, 0, 0);
+        center.Controls.Add(sideButtons, 1, 0);
+
+        var bottomArea = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            BackColor = SystemColors.Control,
+            Margin = Padding.Empty
+        };
+        bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 46f));
+        bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54f));
+
+        var transportPanel = new GroupBox { Text = "Transport", Dock = DockStyle.Fill };
+        _chkAutoPlay = new CheckBox { Text = "Auto Play", Location = new Point(10, 20), Checked = true };
+        _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
+        var lblVol = new Label { Text = "Main", Location = new Point(10, 48), Size = new Size(36, 16) };
+        _volumeSlider = new TrackBar { Location = new Point(48, 42), Size = new Size(160, 28), Minimum = 0, Maximum = 100, Value = 85, TickStyle = TickStyle.None };
+        _volumeSlider.ValueChanged += (s, e) => { AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f; _lblVolume.Text = _volumeSlider.Value + "%"; };
+        _lblVolume = new Label { Text = "85%", Location = new Point(212, 48), Size = new Size(36, 16) };
+        var lblPreviewVol = new Label { Text = "Cue", Location = new Point(10, 80), Size = new Size(36, 16) };
+        _previewVolumeSlider = new TrackBar { Location = new Point(48, 74), Size = new Size(160, 28), Minimum = 0, Maximum = 100, Value = 80, TickStyle = TickStyle.None };
+        _previewVolumeSlider.ValueChanged += (s, e) => AudioEngine.Instance.PreviewVolume = _previewVolumeSlider.Value / 100f;
+        _btnPreviewPlay = new Button { Text = ">", Location = new Point(248, 44), Size = new Size(28, 24), FlatStyle = FlatStyle.System };
+        _btnPreviewPlay.Click += BtnPreviewPlay_Click;
+        _btnPreviewStop = new Button { Text = "[]", Location = new Point(278, 44), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
+        _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
+        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(248, 76), Size = new Size(120, 20) };
+        transportPanel.Controls.AddRange(new Control[] { _chkAutoPlay, lblVol, _volumeSlider, _lblVolume, lblPreviewVol, _previewVolumeSlider, _btnPreviewPlay, _btnPreviewStop, _lblPreviewTrack });
+
+        var pitchPanel = new GroupBox { Text = "Deck", Dock = DockStyle.Fill };
+        _pitchSlider = new TrackBar { Location = new Point(10, 18), Size = new Size(148, 24), Minimum = -24, Maximum = 24, TickStyle = TickStyle.None };
+        _pitchSlider.ValueChanged += PitchSlider_Changed;
+        _tempoSlider = new TrackBar { Location = new Point(10, 48), Size = new Size(148, 24), Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
+        _tempoSlider.ValueChanged += TempoSlider_Changed;
+        _rateSlider = new TrackBar { Location = new Point(10, 78), Size = new Size(148, 24), Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
+        _rateSlider.ValueChanged += RateSlider_Changed;
+        _lblPitchVal = new Label { Text = "0 st", Location = new Point(112, 16), Size = new Size(50, 16) };
+        _lblTempoVal = new Label { Text = "0%", Location = new Point(112, 46), Size = new Size(50, 16) };
+        _lblRateVal = new Label { Text = "x1.00", Location = new Point(112, 76), Size = new Size(50, 16) };
+        pitchPanel.Controls.AddRange(new Control[] { _pitchSlider, _tempoSlider, _rateSlider, _lblPitchVal, _lblTempoVal, _lblRateVal });
+
+        var libraryPanel = new GroupBox { Text = "Library", Dock = DockStyle.Fill };
+        _lvLibrary = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true, BorderStyle = BorderStyle.Fixed3D };
+        _lvLibrary.Columns.Add("Artist", 132);
+        _lvLibrary.Columns.Add("Title", 200);
+        _lvLibrary.Columns.Add("Dur", 48);
+        _lvLibrary.ItemDrag += LvLibrary_ItemDrag;
+        libraryPanel.Controls.Add(_lvLibrary);
+
+        bottomArea.Controls.Add(transportPanel, 0, 0);
+        bottomArea.Controls.Add(pitchPanel, 1, 0);
+        bottomArea.Controls.Add(libraryPanel, 2, 0);
+
+        _pitchSpeedBar = BuildPitchSpeedBar();
+        _pitchSpeedBar.Visible = false;
+
+        var streamBar = new Panel { Height = 1, Dock = DockStyle.Bottom, Visible = false };
+        _lblStreamStatus = new Label();
+        _btnStreamSettings = new Button();
+
+        root.Controls.Add(topStrip, 0, 0);
+        root.Controls.Add(headerStrip, 0, 1);
+        root.Controls.Add(center, 0, 2);
+        root.Controls.Add(bottomArea, 0, 3);
+
+        Controls.Add(root);
+        Controls.Add(_pitchSpeedBar);
+        Controls.Add(streamBar);
     }
 
     private Panel BuildPitchSpeedBar()
