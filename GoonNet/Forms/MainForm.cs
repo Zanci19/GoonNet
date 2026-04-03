@@ -18,6 +18,8 @@ public class MainForm : Form
     public PlaylistDatabase PlaylistDb { get; } = new();
     public UserDatabase UserDb { get; } = new();
     public LogDatabase LogDb { get; } = new();
+    public EconomicCategoryDatabase CategoryDb { get; } = new();
+    public SpotScheduleDatabase SpotDb { get; } = new();
 
     private System.Windows.Forms.Timer _clockTimer = null!;
     private ToolStripStatusLabel _statusLeft = null!;
@@ -47,6 +49,8 @@ public class MainForm : Form
         PlaylistDb.Initialize(Path.Combine(basePath, "playlists.xml"));
         UserDb.Initialize(Path.Combine(basePath, "users.xml"));
         LogDb.Initialize(Path.Combine(basePath, "log.xml"));
+        CategoryDb.Initialize(Path.Combine(basePath, "categories.xml"));
+        SpotDb.Initialize(Path.Combine(basePath, "spotschedule.xml"));
     }
 
     private void InitializeComponent()
@@ -79,6 +83,8 @@ public class MainForm : Form
             new ToolStripMenuItem("&Open...", null, (s, e) => OpenPlaylistEditor()),
             new ToolStripMenuItem("&Settings...", null, (s, e) => OpenSettings()),
             new ToolStripSeparator(),
+            new ToolStripMenuItem("&Reload All Databases", null, (s, e) => ReloadDatabases()),
+            new ToolStripSeparator(),
             new ToolStripMenuItem("E&xit", null, (s, e) => Close())
         });
 
@@ -86,9 +92,11 @@ public class MainForm : Form
         viewMenu.DropDownItems.AddRange(new ToolStripItem[]
         {
             new ToolStripMenuItem("&Studio", null, (s, e) => OpenStudio()),
+            new ToolStripMenuItem("&Jingle Panel", null, (s, e) => OpenJinglePanel()),
             new ToolStripMenuItem("S&cheduler", null, (s, e) => OpenScheduler()),
             new ToolStripMenuItem("&Log Viewer", null, (s, e) => OpenLogViewer()),
             new ToolStripMenuItem("&Error Log", null, (s, e) => OpenErrorLog()),
+            new ToolStripMenuItem("&Detailed Log", null, (s, e) => OpenDetailedLog()),
             new ToolStripSeparator(),
             new ToolStripMenuItem("&Cascade", null, (s, e) => LayoutMdi(MdiLayout.Cascade)),
             new ToolStripMenuItem("&Tile", null, (s, e) => LayoutMdi(MdiLayout.TileHorizontal))
@@ -109,7 +117,8 @@ public class MainForm : Form
         {
             new ToolStripMenuItem("&Event Editor", null, (s, e) => OpenScheduler()),
             new ToolStripMenuItem("&Playlist Editor", null, (s, e) => OpenPlaylistEditor()),
-            new ToolStripMenuItem("Playlist &Sequences", null, (s, e) => MessageBox.Show("Sequence editor coming soon", "GoonNet"))
+            new ToolStripMenuItem("Playlist &Sequences", null, (s, e) => OpenPlaylistSequences()),
+            new ToolStripMenuItem("&Media Plan", null, (s, e) => OpenMediaPlan()),
         });
 
         var toolsMenu = new ToolStripMenuItem("&Tools");
@@ -118,6 +127,10 @@ public class MainForm : Form
             new ToolStripMenuItem("&File Manager", null, (s, e) => OpenFileManager()),
             new ToolStripMenuItem("&User Manager", null, (s, e) => OpenUserManager()),
             new ToolStripMenuItem("&Streaming...", null, (s, e) => OpenStreaming()),
+            new ToolStripMenuItem("&Recorder", null, (s, e) => OpenRecorder()),
+            new ToolStripMenuItem("Log&Works", null, (s, e) => OpenLogWorks()),
+            new ToolStripMenuItem("&Economic Categories", null, (s, e) => OpenEconomicCategories()),
+            new ToolStripSeparator(),
             new ToolStripMenuItem("&Email Settings", null, (s, e) => OpenSettings()),
             new ToolStripMenuItem("&Telnet Server", null, (s, e) => MessageBox.Show("Telnet server settings coming soon", "GoonNet"))
         });
@@ -157,12 +170,16 @@ public class MainForm : Form
         navBar.Items.AddRange(new ToolStripItem[]
         {
             NavBtn("🖥 Studio",    "Open Studio player",       OpenStudio),
+            NavBtn("🎹 Jingles",   "Jingle Panel",             OpenJinglePanel),
             NavBtn("🎵 Library",   "Music Library",            OpenMusicLibrary),
             NavBtn("📅 Schedule",  "Event Scheduler",          OpenScheduler),
             NavBtn("📋 Playlists", "Playlist Editor",          OpenPlaylistEditor),
+            NavBtn("📊 Media Plan","Spots Media Plan",         OpenMediaPlan),
             new ToolStripSeparator(),
+            NavBtn("🎙 Recorder",  "Sound Recorder",           OpenRecorder),
             NavBtn("📂 Files",     "File Manager",             OpenFileManager),
             NavBtn("📜 Log",       "Broadcast Log Viewer",     OpenLogViewer),
+            NavBtn("📋 LogWorks",  "Log Processor",            OpenLogWorks),
             NavBtn("⚠ Errors",    "Error Log",                OpenErrorLog),
             NavBtn("👤 Users",     "User Manager",             OpenUserManager),
         });
@@ -198,6 +215,7 @@ public class MainForm : Form
             OpsBtn("■ STOP ALL", "Stop all playback immediately",
                 stopColor, () => { AudioEngine.Instance.Stop(); AudioEngine.Instance.Stop(AudioDeviceType.Preview); }),
             new ToolStripSeparator(),
+            OpsBtn("🔄 Reload DBs", "Reload all databases from disk", stdColor, ReloadDatabases),
             OpsBtn("📡 Streaming…",  "Web streaming settings",  stdColor, OpenStreaming),
             OpsBtn("⚙ Settings…",   "Application settings",    stdColor, OpenSettings),
             new ToolStripSeparator(),
@@ -230,6 +248,8 @@ public class MainForm : Form
         await PlaylistDb.LoadAsync();
         await UserDb.LoadAsync();
         await LogDb.LoadAsync();
+        await CategoryDb.LoadAsync();
+        await SpotDb.LoadAsync();
         UserDb.EnsureDefaultAdmin();
 
         using var login = new LoginForm { UserDb = UserDb };
@@ -261,6 +281,32 @@ public class MainForm : Form
         await PlaylistDb.SaveAsync();
         await UserDb.SaveAsync();
         await LogDb.SaveAsync();
+        await CategoryDb.SaveAsync();
+        await SpotDb.SaveAsync();
+    }
+
+    private async void ReloadDatabases()
+    {
+        _statusRight.Text = "Reloading databases…";
+        try
+        {
+            await MusicDb.LoadAsync();
+            await JingleDb.LoadAsync();
+            await AdDb.LoadAsync();
+            await BackgroundDb.LoadAsync();
+            await BlockDb.LoadAsync();
+            await EventDb.LoadAsync();
+            await PlaylistDb.LoadAsync();
+            await LogDb.LoadAsync();
+            await CategoryDb.LoadAsync();
+            await SpotDb.LoadAsync();
+            _statusRight.Text = "Databases reloaded";
+        }
+        catch (Exception ex)
+        {
+            ErrorLog.Instance.Add("MainForm.Reload", ex.Message);
+            _statusRight.Text = "Reload failed – see Error Log";
+        }
     }
 
     private void OpenStudio()
@@ -270,6 +316,14 @@ public class MainForm : Form
         var f = new StudioForm { MdiParent = this, PlaylistDb = PlaylistDb, MusicDb = MusicDb, LogDb = LogDb };
         f.Show();
         f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenJinglePanel()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is JinglePanelForm) { child.Activate(); return; }
+        var f = new JinglePanelForm { MdiParent = this, JingleDb = JingleDb };
+        f.Show();
     }
 
     private void OpenMusicLibrary()
@@ -321,6 +375,24 @@ public class MainForm : Form
         f.WindowState = FormWindowState.Maximized;
     }
 
+    private void OpenPlaylistSequences()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is PlaylistSequenceForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new PlaylistSequenceForm { MdiParent = this, PlaylistDb = PlaylistDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenMediaPlan()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is MediaPlanForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new MediaPlanForm { MdiParent = this, AdDb = AdDb, SpotDb = SpotDb, CategoryDb = CategoryDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
     private void OpenFileManager()
     {
         var f = new FileManagerForm { MdiParent = this };
@@ -340,6 +412,42 @@ public class MainForm : Form
         foreach (Form child in MdiChildren)
             if (child is ErrorLogForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
         var f = new ErrorLogForm { MdiParent = this };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenDetailedLog()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is DetailedLogForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new DetailedLogForm { MdiParent = this };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenRecorder()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is RecorderForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new RecorderForm { MdiParent = this };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenLogWorks()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is LogWorksForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new LogWorksForm { MdiParent = this, LogDb = LogDb };
+        f.Show();
+        f.WindowState = FormWindowState.Maximized;
+    }
+
+    private void OpenEconomicCategories()
+    {
+        foreach (Form child in MdiChildren)
+            if (child is EconomicCategoryForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new EconomicCategoryForm { MdiParent = this, CategoryDb = CategoryDb };
         f.Show();
         f.WindowState = FormWindowState.Maximized;
     }
