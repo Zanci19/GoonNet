@@ -18,8 +18,10 @@ public class SampleAggregator : ISampleProvider
     private int _fftPos;
 
     private int _sampleCount;
-    private float _maxValue;
-    private float _minValue;
+    private float _maxLeft;
+    private float _minLeft;
+    private float _maxRight;
+    private float _minRight;
 
     private readonly float[] _streamBuffer;
     private int _streamPos;
@@ -67,15 +69,19 @@ public class SampleAggregator : ISampleProvider
             // Process left channel for FFT and VU meter
             if (n % channels == 0)
             {
-                // VU peak tracking
-                if (sample > _maxValue) _maxValue = sample;
-                if (sample < _minValue) _minValue = sample;
+                if (sample > _maxLeft) _maxLeft = sample;
+                if (sample < _minLeft) _minLeft = sample;
+                if (channels == 1)
+                {
+                    if (sample > _maxRight) _maxRight = sample;
+                    if (sample < _minRight) _minRight = sample;
+                }
                 _sampleCount++;
                 if (_sampleCount >= NotificationCount)
                 {
-                    MaximumCalculated?.Invoke(this, new MaxSampleEventArgs(_minValue, _maxValue));
-                    _maxValue = 0f;
-                    _minValue = 0f;
+                    MaximumCalculated?.Invoke(this, new MaxSampleEventArgs(_minLeft, _maxLeft, _minRight, _maxRight));
+                    _maxLeft = _maxRight = 0f;
+                    _minLeft = _minRight = 0f;
                     _sampleCount = 0;
                 }
 
@@ -91,6 +97,11 @@ public class SampleAggregator : ISampleProvider
                     FastFourierTransform.FFT(true, _m, copy);
                     FftDataAvailable?.Invoke(this, new FftEventArgs(copy));
                 }
+            }
+            else if (channels > 1 && n % channels == 1)
+            {
+                if (sample > _maxRight) _maxRight = sample;
+                if (sample < _minRight) _minRight = sample;
             }
 
             // Accumulate all channels for streaming
@@ -113,9 +124,20 @@ public class FftEventArgs : EventArgs
 
 public class MaxSampleEventArgs : EventArgs
 {
-    public float MinValue { get; }
-    public float MaxValue { get; }
-    public MaxSampleEventArgs(float minValue, float maxValue) { MinValue = minValue; MaxValue = maxValue; }
+    public float MinLeft { get; }
+    public float MaxLeft { get; }
+    public float MinRight { get; }
+    public float MaxRight { get; }
+    public float LeftPeak => Math.Max(Math.Abs(MinLeft), Math.Abs(MaxLeft));
+    public float RightPeak => Math.Max(Math.Abs(MinRight), Math.Abs(MaxRight));
+
+    public MaxSampleEventArgs(float minLeft, float maxLeft, float minRight, float maxRight)
+    {
+        MinLeft = minLeft;
+        MaxLeft = maxLeft;
+        MinRight = minRight;
+        MaxRight = maxRight;
+    }
 }
 
 public class StreamSamplesEventArgs : EventArgs

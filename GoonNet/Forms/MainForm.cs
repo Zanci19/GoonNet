@@ -93,8 +93,6 @@ public class MainForm : Form
         {
             new ToolStripMenuItem("&Studio", null, (s, e) => OpenStudio()),
             new ToolStripMenuItem("&Jingle Panel", null, (s, e) => OpenJinglePanel()),
-            new ToolStripMenuItem("S&cheduler", null, (s, e) => OpenScheduler()),
-            new ToolStripMenuItem("&Log Viewer", null, (s, e) => OpenLogViewer()),
             new ToolStripMenuItem("&Error Log", null, (s, e) => OpenErrorLog()),
             new ToolStripMenuItem("&Detailed Log", null, (s, e) => OpenDetailedLog()),
             new ToolStripSeparator(),
@@ -118,7 +116,6 @@ public class MainForm : Form
             new ToolStripMenuItem("&Event Editor", null, (s, e) => OpenScheduler()),
             new ToolStripMenuItem("&Playlist Editor", null, (s, e) => OpenPlaylistEditor()),
             new ToolStripMenuItem("Playlist &Sequences", null, (s, e) => OpenPlaylistSequences()),
-            new ToolStripMenuItem("&Media Plan", null, (s, e) => OpenMediaPlan()),
         });
 
         var toolsMenu = new ToolStripMenuItem("&Tools");
@@ -179,13 +176,10 @@ public class MainForm : Form
             NavBtn("🖥 Studio",    "Open Studio player",       OpenStudio),
             NavBtn("🎹 Jingles",   "Jingle Panel",             OpenJinglePanel),
             NavBtn("🎵 Library",   "Music Library",            OpenMusicLibrary),
-            NavBtn("📅 Schedule",  "Event Scheduler",          OpenScheduler),
             NavBtn("📋 Playlists", "Playlist Editor",          OpenPlaylistEditor),
-            NavBtn("📊 Media Plan","Spots Media Plan",         OpenMediaPlan),
             new ToolStripSeparator(),
             NavBtn("🎙 Recorder",  "Sound Recorder",           OpenRecorder),
             NavBtn("📂 Files",     "File Manager",             OpenFileManager),
-            NavBtn("📜 Log",       "Broadcast Log Viewer",     OpenLogViewer),
             NavBtn("📋 LogWorks",  "Log Processor",            OpenLogWorks),
             NavBtn("⚠ Errors",    "Error Log",                OpenErrorLog),
             NavBtn("👤 Users",     "User Manager",             OpenUserManager),

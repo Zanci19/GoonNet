@@ -26,7 +26,6 @@ public class StudioForm : Form
     private Label _lblOnAir = null!;
     private Label _lblClock = null!;
     private ProgressBar _progressBar = null!;
-    private VUMeter _vuMeter = null!;
 
     // Controls
     private Button _btnPlayPause = null!;
@@ -50,8 +49,11 @@ public class StudioForm : Form
     private Label _lblNextDuration = null!;
     private Button _btnLoadNext = null!;
 
-    // Playlist list view
+    // Playlist + library list views
     private ListView _lvPlaylist = null!;
+    private ListView _lvLibrary = null!;
+    private Button _btnEditQueuePoints = null!;
+    private Button _btnMix2Ch = null!;
 
     // Preview section
     private Label _lblPreviewTrack = null!;
@@ -59,8 +61,9 @@ public class StudioForm : Form
     private Button _btnPreviewStop = null!;
     private TrackBar _previewVolumeSlider = null!;
 
-    // Spectrum analyzer
-    private SpectrumAnalyzer _spectrum = null!;
+    // Stereo metering
+    private VUMeter _vuLeft = null!;
+    private VUMeter _vuRight = null!;
 
     // Streaming status bar
     private Label _lblStreamStatus = null!;
@@ -77,23 +80,6 @@ public class StudioForm : Form
     private ComboBox _cboPlaylistSelect = null!;
     private Button _btnSaveSession = null!;
 
-    // Studio Tools bar (mic + transition)
-    private Panel _studioToolsBar = null!;
-    // -- Mic talkover
-    private Button _btnTalkover = null!;
-    private ProgressBar _micLevelBar = null!;
-    private TrackBar _duckingSlider = null!;
-    private ComboBox _cboMicDevice = null!;
-    // -- Transition sounds
-    private TextBox _txtTransitionSound = null!;
-    private NumericUpDown _nudFadeSecs = null!;
-    private NumericUpDown _nudFadeInSecs = null!;
-    private Button _btnFadeAndNext = null!;
-
-    // Transition playback state
-    private bool _playingTransition;
-    private MusicTrack? _transitionTrack;
-    private TimeSpan? _pendingTransitionFadeIn;
     private bool _manualJump;
 
     private System.Windows.Forms.Timer _clockTimer = null!;
@@ -214,13 +200,6 @@ public class StudioForm : Form
             Font = new Font("Microsoft Sans Serif", 8f)
         };
 
-        _vuMeter = new VUMeter
-        {
-            Location = new Point(302, 64),
-            Size = new Size(52, 112),
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
-        };
-
         var lblIntro = new Label { Text = "Intro:", Location = new Point(6, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
         _lblIntroValue = new Label { Text = "--", Location = new Point(44, 114), Size = new Size(30, 13), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold), ForeColor = Color.DarkGreen };
         var lblVoiceOut = new Label { Text = "VoiceOut:", Location = new Point(78, 114), Size = new Size(55, 13), Font = new Font("Microsoft Sans Serif", 7f) };
@@ -228,7 +207,7 @@ public class StudioForm : Form
         var lblMixIn = new Label { Text = "MixIn:", Location = new Point(165, 114), Size = new Size(40, 13), Font = new Font("Microsoft Sans Serif", 7f) };
         _lblMixInValue = new Label { Text = "--", Location = new Point(206, 114), Size = new Size(30, 13), Font = new Font("Microsoft Sans Serif", 7f, FontStyle.Bold), ForeColor = Color.Navy };
 
-        nowPanel.Controls.AddRange(new Control[] { _lblArtist, _lblTitle, _progressBar, _lblElapsed, _lblRemaining, _vuMeter, lblIntro, _lblIntroValue, lblVoiceOut, _lblVoiceOutValue, lblMixIn, _lblMixInValue });
+        nowPanel.Controls.AddRange(new Control[] { _lblArtist, _lblTitle, _progressBar, _lblElapsed, _lblRemaining, lblIntro, _lblIntroValue, lblVoiceOut, _lblVoiceOutValue, lblMixIn, _lblMixInValue });
 
         // ---- PLAYBACK CONTROLS ----
         var ctrlPanel = new GroupBox
@@ -463,45 +442,53 @@ public class StudioForm : Form
         _pitchSpeedBar.Dock = DockStyle.Top;
 
         // ══════════════════════════════════════════════════════════════════════
-        // STUDIO TOOLS BAR  (transition sounds + microphone talkover)
+        // STEREO VU METER PANEL (L / R)
         // ══════════════════════════════════════════════════════════════════════
-        _studioToolsBar = BuildStudioToolsBar();
-        _studioToolsBar.Dock = DockStyle.Top;
-
-        // ══════════════════════════════════════════════════════════════════════
-        // LARGE SPECTRUM ANALYZER
-        // ══════════════════════════════════════════════════════════════════════
-        var spectrumPanel = new GroupBox
+        var stereoPanel = new GroupBox
         {
-            Text = "SPECTRUM ANALYZER",
+            Text = "MASTER VU (2-CHANNEL)",
             Dock = DockStyle.Top,
-            Height = 200,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
-            BackColor = Color.Black,
-            ForeColor = Color.FromArgb(0, 200, 0)
+            Height = 170,
+            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
 
-        _spectrum = new SpectrumAnalyzer
-        {
-            Location = new Point(4, 16),
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
-        };
-        spectrumPanel.Controls.Add(_spectrum);
-        spectrumPanel.SizeChanged += (s, e) =>
-        {
-            _spectrum.Size = new Size(spectrumPanel.ClientSize.Width - 8, spectrumPanel.ClientSize.Height - 20);
-        };
+        _vuLeft = new VUMeter { Location = new Point(40, 24), Size = new Size(40, 130) };
+        _vuRight = new VUMeter { Location = new Point(110, 24), Size = new Size(40, 130) };
+        var lblL = new Label { Text = "L", Location = new Point(50, 134), Size = new Size(20, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
+        var lblR = new Label { Text = "R", Location = new Point(120, 134), Size = new Size(20, 16), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) };
+        _btnMix2Ch = new Button { Text = "2CH MIX NEXT", Location = new Point(190, 62), Size = new Size(130, 28), FlatStyle = FlatStyle.System };
+        _btnMix2Ch.Click += BtnMix2Ch_Click;
+        stereoPanel.Controls.AddRange(new Control[] { _vuLeft, _vuRight, lblL, lblR, _btnMix2Ch });
 
         // ══════════════════════════════════════════════════════════════════════
         // PLAYLIST PANEL (fills remaining space)
         // ══════════════════════════════════════════════════════════════════════
         var playlistPanel = new GroupBox
         {
-            Text = "CURRENT PLAYLIST",
-            Dock = DockStyle.Bottom,
-            Height = 260,
+            Text = "LIBRARY & CURRENT PLAYLIST",
+            Dock = DockStyle.Fill,
             Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold)
         };
+
+        var split = new SplitContainer
+        {
+            Dock = DockStyle.Fill,
+            Orientation = Orientation.Vertical,
+            SplitterDistance = 350,
+            BorderStyle = BorderStyle.None
+        };
+
+        _lvLibrary = new ListView
+        {
+            Dock = DockStyle.Fill,
+            View = View.Details,
+            FullRowSelect = true,
+            GridLines = true
+        };
+        _lvLibrary.Columns.Add("Artist", 140);
+        _lvLibrary.Columns.Add("Title", 150);
+        _lvLibrary.Columns.Add("Duration", 60);
+        _lvLibrary.ItemDrag += LvLibrary_ItemDrag;
 
         _lvPlaylist = new ListView
         {
@@ -520,10 +507,25 @@ public class StudioForm : Form
         _lvPlaylist.Columns.Add("Start", 82);
         _lvPlaylist.Columns.Add("Status", 80);
         _lvPlaylist.DoubleClick += LvPlaylist_DoubleClick;
+        _lvPlaylist.AllowDrop = true;
+        _lvPlaylist.DragEnter += LvPlaylist_DragEnter;
+        _lvPlaylist.DragDrop += LvPlaylist_DragDrop;
 
-        playlistPanel.Controls.Add(_lvPlaylist);
+        var leftHeader = new Panel { Dock = DockStyle.Top, Height = 30 };
+        leftHeader.Controls.Add(new Label { Text = "LIBRARY (drag tracks to playlist)", AutoSize = true, Location = new Point(6, 8), Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold) });
+        split.Panel1.Controls.Add(_lvLibrary);
+        split.Panel1.Controls.Add(leftHeader);
 
-        Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, _studioToolsBar, spectrumPanel, playlistPanel });
+        var rightHeader = new Panel { Dock = DockStyle.Top, Height = 30 };
+        _btnEditQueuePoints = new Button { Text = "Queue Points...", Location = new Point(6, 4), Size = new Size(96, 22), FlatStyle = FlatStyle.System };
+        _btnEditQueuePoints.Click += BtnEditQueuePoints_Click;
+        rightHeader.Controls.Add(_btnEditQueuePoints);
+        split.Panel2.Controls.Add(_lvPlaylist);
+        split.Panel2.Controls.Add(rightHeader);
+
+        playlistPanel.Controls.Add(split);
+
+        Controls.AddRange(new Control[] { topPanel, streamBar, _pitchSpeedBar, stereoPanel, playlistPanel });
     }
 
     private Panel BuildPitchSpeedBar()
@@ -676,11 +678,7 @@ public class StudioForm : Form
                 PitchSemiTones = AudioEngine.Instance.PitchSemiTones,
                 TempoChange = AudioEngine.Instance.TempoChange,
                 RateChange = AudioEngine.Instance.RateChange,
-                AutoPlay = _autoPlay,
-                TransitionSoundPath = _txtTransitionSound.Text,
-                FadeSeconds = (int)_nudFadeSecs.Value,
-                MicDeviceIndex = Math.Max(0, _cboMicDevice.SelectedIndex),
-                DuckingPercent = _duckingSlider.Value
+                AutoPlay = _autoPlay
             };
             Directory.CreateDirectory(AppDataPath);
             var ser = new System.Xml.Serialization.XmlSerializer(typeof(StudioSession));
@@ -718,16 +716,6 @@ public class StudioForm : Form
             _autoPlay = session.AutoPlay;
             _chkAutoPlay.Checked = _autoPlay;
 
-            if (!string.IsNullOrEmpty(session.TransitionSoundPath))
-                _txtTransitionSound.Text = session.TransitionSoundPath;
-
-            _nudFadeSecs.Value = Math.Clamp(session.FadeSeconds, (int)_nudFadeSecs.Minimum, (int)_nudFadeSecs.Maximum);
-
-            if (session.MicDeviceIndex >= 0 && session.MicDeviceIndex < _cboMicDevice.Items.Count)
-                _cboMicDevice.SelectedIndex = session.MicDeviceIndex;
-
-            _duckingSlider.Value = Math.Clamp(session.DuckingPercent, 0, 100);
-
             // Restore playlist selection
             if (session.PlaylistId.HasValue && PlaylistDb != null)
             {
@@ -752,185 +740,6 @@ public class StudioForm : Form
             }
         }
         catch { /* non-critical */ }
-    }
-
-    private Panel BuildStudioToolsBar()
-    {
-        var bar = new Panel
-        {
-            Height = 80,
-            BackColor = Color.FromArgb(25, 28, 38)
-        };
-
-        // ── LEFT: Transition sound controls ────────────────────────────────
-        var transGroup = new GroupBox
-        {
-            Text = "TRANSITION SOUND",
-            Location = new Point(4, 4),
-            Size = new Size(550, 72),
-            Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(160, 200, 255),
-            BackColor = Color.FromArgb(25, 28, 38)
-        };
-
-        var lblFade = new Label { Text = "Fade:", Location = new Point(8, 22), Size = new Size(36, 16), ForeColor = Color.Silver };
-        _nudFadeSecs = new NumericUpDown
-        {
-            Location = new Point(46, 20),
-            Size = new Size(52, 20),
-            Minimum = 1,
-            Maximum = 30,
-            Value = 5,
-            DecimalPlaces = 0
-        };
-        var lblSecs = new Label { Text = "sec", Location = new Point(101, 22), Size = new Size(26, 16), ForeColor = Color.Silver };
-
-        var lblSnd = new Label { Text = "Stinger:", Location = new Point(134, 22), Size = new Size(46, 16), ForeColor = Color.Silver };
-        _txtTransitionSound = new TextBox
-        {
-            Location = new Point(182, 19),
-            Size = new Size(220, 20),
-            BackColor = Color.FromArgb(40, 45, 60),
-            ForeColor = Color.White,
-            BorderStyle = BorderStyle.FixedSingle,
-            PlaceholderText = "(optional .mp3/.wav stinger)"
-        };
-        var btnBrowse = new Button
-        {
-            Text = "📂",
-            Location = new Point(406, 18),
-            Size = new Size(30, 22),
-            FlatStyle = FlatStyle.Flat,
-            ForeColor = Color.Silver,
-            BackColor = Color.FromArgb(50, 55, 70)
-        };
-        btnBrowse.FlatAppearance.BorderColor = Color.FromArgb(80, 90, 110);
-        btnBrowse.Click += BtnBrowseTransition_Click;
-
-        _btnFadeAndNext = new Button
-        {
-            Text = "FADE & NEXT ▶",
-            Location = new Point(442, 16),
-            Size = new Size(102, 26),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Microsoft Sans Serif", 8f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(255, 220, 100),
-            BackColor = Color.FromArgb(80, 60, 10)
-        };
-        _btnFadeAndNext.FlatAppearance.BorderColor = Color.FromArgb(180, 140, 40);
-        _btnFadeAndNext.Click += BtnFadeAndNext_Click;
-
-        var lblFadeIn = new Label { Text = "Fade in:", Location = new Point(8, 48), Size = new Size(42, 16), ForeColor = Color.Silver };
-        _nudFadeInSecs = new NumericUpDown
-        {
-            Location = new Point(54, 46),
-            Size = new Size(52, 20),
-            Minimum = 0,
-            Maximum = 15,
-            Value = 2,
-            DecimalPlaces = 0
-        };
-        var lblFadeInSecs = new Label { Text = "sec", Location = new Point(110, 48), Size = new Size(26, 16), ForeColor = Color.Silver };
-
-        var lblTransTip = new Label
-        {
-            Text = "Fades out current track, plays stinger, then fades in next track for smoother segues.",
-            Location = new Point(136, 48),
-            Size = new Size(404, 18),
-            ForeColor = Color.FromArgb(120, 130, 150),
-            Font = new Font("Microsoft Sans Serif", 7f)
-        };
-
-        transGroup.Controls.AddRange(new Control[] { lblFade, _nudFadeSecs, lblSecs, lblSnd, _txtTransitionSound, btnBrowse, _btnFadeAndNext, lblFadeIn, _nudFadeInSecs, lblFadeInSecs, lblTransTip });
-
-        // ── RIGHT: Microphone talkover controls ────────────────────────────
-        var micGroup = new GroupBox
-        {
-            Text = "🎤 MIC TALKOVER",
-            Location = new Point(558, 4),
-            Size = new Size(440, 72),
-            Font = new Font("Microsoft Sans Serif", 7.5f, FontStyle.Bold),
-            ForeColor = Color.FromArgb(255, 180, 180),
-            BackColor = Color.FromArgb(25, 28, 38),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        bar.SizeChanged += (s, e) => micGroup.Width = bar.Width - 562;
-
-        var lblDev = new Label { Text = "Device:", Location = new Point(8, 20), Size = new Size(45, 16), ForeColor = Color.Silver };
-        _cboMicDevice = new ComboBox
-        {
-            Location = new Point(56, 18),
-            Size = new Size(200, 20),
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            BackColor = Color.FromArgb(40, 45, 60),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Popup
-        };
-        PopulateMicDevices();
-
-        var lblDuck = new Label { Text = "Duck:", Location = new Point(262, 20), Size = new Size(36, 16), ForeColor = Color.Silver };
-        _duckingSlider = new TrackBar
-        {
-            Location = new Point(300, 14),
-            Size = new Size(80, 28),
-            Minimum = 0,
-            Maximum = 100,
-            Value = 25,
-            TickFrequency = 25,
-            TickStyle = TickStyle.None
-        };
-        var lblDuckVal = new Label { Text = "25%", Location = new Point(384, 20), Size = new Size(32, 16), ForeColor = Color.Silver };
-        _duckingSlider.ValueChanged += (s, e) =>
-        {
-            lblDuckVal.Text = _duckingSlider.Value + "%";
-            MicrophoneManager.Instance.DuckLevel = _duckingSlider.Value / 100f;
-        };
-
-        _btnTalkover = new Button
-        {
-            Text = "⏵ TALKOVER",
-            Location = new Point(8, 42),
-            Size = new Size(250, 24),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Microsoft Sans Serif", 8.5f, FontStyle.Bold),
-            ForeColor = Color.White,
-            BackColor = Color.FromArgb(60, 30, 30)
-        };
-        _btnTalkover.FlatAppearance.BorderColor = Color.FromArgb(150, 60, 60);
-        _btnTalkover.Click += BtnTalkover_Click;
-
-        _micLevelBar = new ProgressBar
-        {
-            Location = new Point(264, 42),
-            Size = new Size(160, 18),
-            Minimum = 0,
-            Maximum = 100,
-            Style = ProgressBarStyle.Continuous,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        bar.SizeChanged += (s, e) => _micLevelBar.Width = Math.Max(80, micGroup.Width - 270);
-
-        micGroup.Controls.AddRange(new Control[] { lblDev, _cboMicDevice, lblDuck, _duckingSlider, lblDuckVal, _btnTalkover, _micLevelBar });
-
-        bar.Controls.AddRange(new Control[] { transGroup, micGroup });
-        return bar;
-    }
-
-    private void PopulateMicDevices()
-    {
-        _cboMicDevice.Items.Clear();
-        int count = MicrophoneManager.DeviceCount;
-        if (count == 0)
-        {
-            _cboMicDevice.Items.Add("(no microphone found)");
-            // Leave SelectedIndex at -1 so the placeholder is not mistaken for a valid device
-        }
-        else
-        {
-            for (int i = 0; i < count; i++)
-                _cboMicDevice.Items.Add(MicrophoneManager.GetDeviceName(i));
-            _cboMicDevice.SelectedIndex = 0;
-        }
     }
 
     private void OpenStreamingForm()
@@ -983,47 +792,8 @@ public class StudioForm : Form
                 _lblRemaining.Text = "-0:00";
                 UpdateSegueTimers(TimeSpan.Zero, null);
                 MarkCurrentPlayed();
-
-                if (_playingTransition)
-                {
-                    // The transition stinger just finished — advance playlist normally
-                    _playingTransition = false;
-                    _transitionTrack = null;
-                    if (_autoPlay)
-                    {
-                        PlayNext();
-                        ApplyPendingTransitionFadeIn();
-                    }
-                }
-                else if (_transitionTrack != null)
-                {
-                    // Current track faded out; now play the stinger
-                    var stinger = _transitionTrack;
-                    _transitionTrack = null;
-                    _playingTransition = true;
-                    if (File.Exists(stinger.FullPath))
-                    {
-                        AudioEngine.Instance.PlayTrack(stinger);
-                        _lblArtist.Text = "🎵 " + stinger.Artist;
-                        _lblTitle.Text = stinger.Title;
-                    }
-                    else
-                    {
-                        // Stinger file missing — skip straight to next
-                        _playingTransition = false;
-                        if (_autoPlay)
-                        {
-                            PlayNext();
-                            ApplyPendingTransitionFadeIn();
-                        }
-                    }
-                }
-                else
-                {
-                    _pendingTransitionFadeIn = null;
-                    if (_autoPlay && !_manualJump) PlayNext();
-                    _manualJump = false;
-                }
+                if (_autoPlay && !_manualJump) PlayNext();
+                _manualJump = false;
             });
         };
 
@@ -1056,12 +826,6 @@ public class StudioForm : Form
             BeginInvoke(() => UpdateStreamStatusBar());
         };
 
-        // Mic level updates
-        MicrophoneManager.Instance.LevelChanged += (s, level) =>
-        {
-            if (!IsHandleCreated) return;
-            BeginInvoke(() => _micLevelBar.Value = (int)(level * 100));
-        };
     }
 
     private void UpdateSegueTimers(TimeSpan position, MusicTrack? track)
@@ -1083,7 +847,6 @@ public class StudioForm : Form
         // Unsubscribe from old aggregator
         if (_currentAggregator != null)
         {
-            _currentAggregator.FftDataAvailable -= OnFftData;
             _currentAggregator.MaximumCalculated -= OnMaxSample;
             _currentAggregator = null;
         }
@@ -1093,32 +856,35 @@ public class StudioForm : Form
         _currentAggregator = agg;
         if (agg != null)
         {
-            agg.FftDataAvailable += OnFftData;
             agg.MaximumCalculated += OnMaxSample;
         }
         else
         {
-            // Playback stopped — reset spectrum
-            if (IsHandleCreated) BeginInvoke(() => _spectrum.Reset());
+            if (IsHandleCreated)
+            {
+                BeginInvoke(() =>
+                {
+                    _vuLeft.UpdateLevel(0);
+                    _vuRight.UpdateLevel(0);
+                });
+            }
         }
-    }
-
-    private void OnFftData(object? sender, FftEventArgs e)
-    {
-        if (!IsHandleCreated) return;
-        BeginInvoke(() => _spectrum.UpdateFft(e.Result));
     }
 
     private void OnMaxSample(object? sender, MaxSampleEventArgs e)
     {
         if (!IsHandleCreated) return;
-        BeginInvoke(() => _vuMeter.UpdateLevel(Math.Abs(e.MaxValue)));
+        BeginInvoke(() =>
+        {
+            _vuLeft.UpdateLevel(e.LeftPeak);
+            _vuRight.UpdateLevel(e.RightPeak);
+        });
     }
 
     private void UpdateStreamStatusBar()
     {
         bool on = StreamManager.Instance.IsStreaming;
-        bool onAir = on || MicrophoneManager.Instance.IsActive;
+        bool onAir = on || AudioEngine.Instance.IsPlaying;
         _lblOnAir.Text = onAir ? "ON AIR" : "OFF AIR";
         _lblOnAir.BackColor = onAir ? Color.FromArgb(170, 20, 20) : Color.FromArgb(70, 20, 20);
         _lblOnAir.ForeColor = onAir ? Color.FromArgb(255, 245, 170) : Color.FromArgb(255, 180, 180);
@@ -1141,6 +907,7 @@ public class StudioForm : Form
 
     private void StudioForm_Load(object? sender, EventArgs e)
     {
+        PopulateLibraryView();
         PopulatePlaylistCombo();
         LoadCurrentPlaylist();
         LoadSession();
@@ -1149,6 +916,21 @@ public class StudioForm : Form
         RefreshPlaylistView();
         ShowNextTrack();
         UpdateStreamStatusBar();
+    }
+
+    private void PopulateLibraryView()
+    {
+        _lvLibrary.BeginUpdate();
+        _lvLibrary.Items.Clear();
+        foreach (var track in MusicDb?.GetAll() ?? System.Linq.Enumerable.Empty<MusicTrack>())
+        {
+            var lvi = new ListViewItem(track.Artist);
+            lvi.SubItems.Add(track.Title);
+            lvi.SubItems.Add(FormatTime(track.Duration));
+            lvi.Tag = track;
+            _lvLibrary.Items.Add(lvi);
+        }
+        _lvLibrary.EndUpdate();
     }
 
     private void LoadCurrentPlaylist()
@@ -1373,100 +1155,88 @@ public class StudioForm : Form
         _lblPreviewTrack.Text = $"Preview: {track.Artist} — {track.Title}";
     }
 
-    private void BtnTalkover_Click(object? sender, EventArgs e)
+    private void BtnMix2Ch_Click(object? sender, EventArgs e)
     {
-        if (MicrophoneManager.Instance.IsActive)
+        if (_currentPlaylist == null) return;
+        int nextIdx = _currentIndex + 1;
+        if (nextIdx >= _currentPlaylist.Items.Count)
         {
-            MicrophoneManager.Instance.StopTalkover();
-            _btnTalkover.Text = "⏵ TALKOVER";
-            _btnTalkover.BackColor = Color.FromArgb(60, 30, 30);
-            _btnTalkover.ForeColor = Color.White;
-            _micLevelBar.Value = 0;
-            UpdateStreamStatusBar();
-        }
-        else
-        {
-            MicrophoneManager.Instance.DeviceNumber = _cboMicDevice.SelectedIndex >= 0 ? _cboMicDevice.SelectedIndex : 0;
-            MicrophoneManager.Instance.DuckLevel = _duckingSlider.Value / 100f;
-            try
-            {
-                MicrophoneManager.Instance.StartTalkover();
-                _btnTalkover.Text = "⏹ STOP TALKOVER";
-                _btnTalkover.BackColor = Color.FromArgb(180, 30, 30);
-                _btnTalkover.ForeColor = Color.Yellow;
-                UpdateStreamStatusBar();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Could not start microphone:\n{ex.Message}", "GoonNet",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-    }
-
-    private void BtnBrowseTransition_Click(object? sender, EventArgs e)
-    {
-        using var dlg = new OpenFileDialog
-        {
-            Title = "Select Transition / Stinger Sound",
-            Filter = "Audio Files|*.mp3;*.wav;*.ogg;*.aac;*.flac|All Files|*.*",
-            CheckFileExists = true
-        };
-        if (dlg.ShowDialog() == DialogResult.OK)
-            _txtTransitionSound.Text = dlg.FileName;
-    }
-
-    private void BtnFadeAndNext_Click(object? sender, EventArgs e)
-    {
-        if (!AudioEngine.Instance.IsPlaying)
-        {
-            // Not playing — just advance
-            PlayNext();
-            ApplyPendingTransitionFadeIn();
+            MessageBox.Show("No next track available for 2-channel mix.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
-        var fadeDuration = TimeSpan.FromSeconds((double)_nudFadeSecs.Value);
-        _pendingTransitionFadeIn = TimeSpan.FromSeconds((double)_nudFadeInSecs.Value);
-        string stingerPath = _txtTransitionSound.Text.Trim();
+        var nextItem = _currentPlaylist.Items[nextIdx];
+        var nextTrack = MusicDb?.GetById(nextItem.TrackId);
+        if (nextTrack == null || !File.Exists(nextTrack.FullPath))
+        {
+            MessageBox.Show("Next track file not found.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
-        if (!string.IsNullOrEmpty(stingerPath) && File.Exists(stingerPath))
+        AudioEngine.Instance.PlayTrack(nextTrack, AudioDeviceType.Preview);
+        _lblPreviewTrack.Text = $"2CH PreMix: {nextTrack.Artist} — {nextTrack.Title}";
+        var swapTimer = new System.Windows.Forms.Timer { Interval = 3500 };
+        swapTimer.Tick += (s, args) =>
         {
-            // Schedule the stinger to play after the fade
-            _transitionTrack = new MusicTrack
-            {
-                Artist = "Transition",
-                Title = Path.GetFileNameWithoutExtension(stingerPath),
-                FileName = Path.GetFileName(stingerPath),
-                Location = Path.GetDirectoryName(stingerPath) ?? string.Empty
-            };
+            swapTimer.Stop();
+            swapTimer.Dispose();
             MarkCurrentPlayed();
-            AudioEngine.Instance.FadeOut(AudioDeviceType.Main, fadeDuration);
-            // TrackEnded will fire → plays stinger → TrackEnded fires again → PlayNext()
-        }
-        else
-        {
-            // No stinger — just fade out and advance
-            MarkCurrentPlayed();
-            AudioEngine.Instance.FadeOut(AudioDeviceType.Main, fadeDuration, () =>
+            _manualJump = true;
+            AudioEngine.Instance.FadeOut(AudioDeviceType.Main, TimeSpan.FromMilliseconds(800), () =>
             {
-                if (IsHandleCreated)
-                    BeginInvoke(() =>
-                    {
-                        PlayNext();
-                        ApplyPendingTransitionFadeIn();
-                    });
+                if (!IsHandleCreated) return;
+                BeginInvoke(() =>
+                {
+                    _currentIndex = nextIdx;
+                    PlayCurrent();
+                });
             });
-        }
+        };
+        swapTimer.Start();
     }
 
-    private void ApplyPendingTransitionFadeIn()
+    private void LvLibrary_ItemDrag(object? sender, ItemDragEventArgs e)
     {
-        var fadeIn = _pendingTransitionFadeIn;
-        _pendingTransitionFadeIn = null;
-        if (fadeIn == null || fadeIn.Value <= TimeSpan.Zero) return;
-        if (AudioEngine.Instance.IsPlaying)
-            AudioEngine.Instance.FadeIn(AudioDeviceType.Main, fadeIn.Value);
+        if (e.Item is ListViewItem lvi && lvi.Tag is MusicTrack track)
+            DoDragDrop(track, DragDropEffects.Copy);
+    }
+
+    private void LvPlaylist_DragEnter(object? sender, DragEventArgs e)
+    {
+        if (e.Data?.GetDataPresent(typeof(MusicTrack)) == true)
+            e.Effect = DragDropEffects.Copy;
+    }
+
+    private void LvPlaylist_DragDrop(object? sender, DragEventArgs e)
+    {
+        if (_currentPlaylist == null || e.Data?.GetData(typeof(MusicTrack)) is not MusicTrack track) return;
+        var insertIndex = _lvPlaylist.PointToClient(new Point(e.X, e.Y));
+        var target = _lvPlaylist.GetItemAt(insertIndex.X, insertIndex.Y);
+        int idx = target?.Index ?? _currentPlaylist.Items.Count;
+        _currentPlaylist.Items.Insert(Math.Clamp(idx, 0, _currentPlaylist.Items.Count), new PlaylistItem
+        {
+            TrackId = track.Id,
+            Artist = track.Artist,
+            Title = track.Title,
+            Duration = track.Duration,
+            TrackType = TrackType.Music
+        });
+        RefreshPlaylistView();
+        ShowNextTrack();
+    }
+
+    private void BtnEditQueuePoints_Click(object? sender, EventArgs e)
+    {
+        if (_lvPlaylist.SelectedItems.Count == 0) return;
+        var idx = (int)(_lvPlaylist.SelectedItems[0].Tag ?? -1);
+        if (_currentPlaylist == null || idx < 0 || idx >= _currentPlaylist.Items.Count) return;
+        var item = _currentPlaylist.Items[idx];
+        var track = MusicDb?.GetById(item.TrackId);
+        if (track == null) return;
+
+        using var dlg = new QueuePointEditorForm(track);
+        if (dlg.ShowDialog(this) == DialogResult.OK)
+            MusicDb?.Update(track);
     }
 
     private void LvPlaylist_DoubleClick(object? sender, EventArgs e)
@@ -1492,14 +1262,10 @@ public class StudioForm : Form
         _clockTimer.Stop();
 
         // Stop mic talkover if active
-        if (MicrophoneManager.Instance.IsActive)
-            MicrophoneManager.Instance.StopTalkover();
-
         // Safely unsubscribe
         AudioEngine.Instance.MainSampleAggregatorChanged -= OnMainAggregatorChanged;
         if (_currentAggregator != null)
         {
-            _currentAggregator.FftDataAvailable -= OnFftData;
             _currentAggregator.MaximumCalculated -= OnMaxSample;
         }
 
@@ -1511,8 +1277,7 @@ public class StudioForm : Form
         // Common radio-style hotkeys for quick on-air operation.
         if (keyData == Keys.Space) { BtnPlayPause_Click(this, EventArgs.Empty); return true; }
         if (keyData == (Keys.Control | Keys.Right)) { BtnNext_Click(this, EventArgs.Empty); return true; }
-        if (keyData == (Keys.Control | Keys.F)) { BtnFadeAndNext_Click(this, EventArgs.Empty); return true; }
-        if (keyData == Keys.F8) { BtnTalkover_Click(this, EventArgs.Empty); return true; }
+        if (keyData == (Keys.Control | Keys.M)) { BtnMix2Ch_Click(this, EventArgs.Empty); return true; }
         if (keyData == (Keys.Control | Keys.Shift | Keys.P)) { BtnPanic_Click(this, EventArgs.Empty); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
@@ -1533,7 +1298,6 @@ public class StudioForm : Form
         try
         {
             // Stop all audio
-            if (MicrophoneManager.Instance.IsActive) MicrophoneManager.Instance.StopTalkover();
             AudioEngine.Instance.Stop(AudioDeviceType.Main);
             AudioEngine.Instance.Stop(AudioDeviceType.Preview);
 
@@ -1550,7 +1314,6 @@ public class StudioForm : Form
             _lblTitle.Text = "Audio engine restarted";
             _lblOnAir.Text = "OFF AIR";
             _lblOnAir.BackColor = Color.FromArgb(70, 20, 20);
-            _micLevelBar.Value = 0;
 
             // Reconnect engine events
             ConnectAudioEngine();
