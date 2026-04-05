@@ -63,7 +63,7 @@ public class MySqlMusicDatabase : MusicDatabase
             cmd.Parameters.AddWithValue("@title", track.Title);
             cmd.Parameters.AddWithValue("@year", track.Year > 0 ? (object)track.Year : DBNull.Value);
             cmd.Parameters.AddWithValue("@category", track.Genre);
-            cmd.Parameters.AddWithValue("@music_path", BuildMusicPath(track));
+            cmd.Parameters.AddWithValue("@music_path", BuildMusicPath(NormalizeTrackLocation(track)));
             cmd.Parameters.AddWithValue("@playlist", track.PlaylistName);
             cmd.Parameters.AddWithValue("@added_at", track.DateAdded);
             track.DbId = Convert.ToInt32(cmd.ExecuteScalar());
@@ -91,7 +91,7 @@ public class MySqlMusicDatabase : MusicDatabase
             cmd.Parameters.AddWithValue("@title", track.Title);
             cmd.Parameters.AddWithValue("@year", track.Year > 0 ? (object)track.Year : DBNull.Value);
             cmd.Parameters.AddWithValue("@category", track.Genre);
-            cmd.Parameters.AddWithValue("@music_path", BuildMusicPath(track));
+            cmd.Parameters.AddWithValue("@music_path", BuildMusicPath(NormalizeTrackLocation(track)));
             cmd.Parameters.AddWithValue("@playlist", track.PlaylistName);
             cmd.Parameters.AddWithValue("@id", track.DbId);
             cmd.ExecuteNonQuery();
@@ -187,7 +187,7 @@ public class MySqlMusicDatabase : MusicDatabase
                 Csv(t.Title),
                 Csv(t.Year > 0 ? t.Year.ToString() : ""),
                 Csv(t.Genre),
-                Csv(BuildMusicPath(t)),
+                Csv(BuildMusicPath(NormalizeTrackLocation(t))),
                 Csv(t.PlaylistName),
                 Csv(t.DateAdded.ToString("o")),
                 Csv(t.LastPlayed?.ToString("o") ?? ""),
@@ -220,7 +220,7 @@ public class MySqlMusicDatabase : MusicDatabase
             writer.WriteLine(
                 $"INSERT INTO music (author, title, `year`, category, music_path, playlist, added_at, last_played, play_count) VALUES " +
                 $"({SqlStr(t.Artist)}, {SqlStr(t.Title)}, {(t.Year > 0 ? t.Year.ToString() : "NULL")}, " +
-                $"{SqlStr(t.Genre)}, {SqlStr(BuildMusicPath(t))}, {SqlStr(t.PlaylistName)}, " +
+                $"{SqlStr(t.Genre)}, {SqlStr(BuildMusicPath(NormalizeTrackLocation(t)))}, {SqlStr(t.PlaylistName)}, " +
                 $"{SqlStr(t.DateAdded.ToString("yyyy-MM-dd HH:mm:ss"))}, " +
                 $"{(t.LastPlayed.HasValue ? SqlStr(t.LastPlayed.Value.ToString("yyyy-MM-dd HH:mm:ss")) : "NULL")}, " +
                 $"{t.PlayCount});");
@@ -264,6 +264,50 @@ public class MySqlMusicDatabase : MusicDatabase
             added++;
         }
         return (added, skipped);
+    }
+
+
+    /// <summary>
+    /// Scans a music folder and auto-adds files that are not yet present in DB.
+    /// </summary>
+    public int AutoAddFromFolder(string musicFolder)
+    {
+        if (string.IsNullOrWhiteSpace(musicFolder) || !Directory.Exists(musicFolder))
+            return 0;
+
+        var existing = _items.Select(t => BuildMusicPath(NormalizeTrackLocation(t)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        int added = 0;
+
+        foreach (var path in Directory.EnumerateFiles(musicFolder, "*.*", SearchOption.AllDirectories))
+        {
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            if (Array.IndexOf(new[] { ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".wma" }, ext) < 0)
+                continue;
+
+            var relativeInMusic = Path.GetRelativePath(musicFolder, path).Replace('\\', '/');
+            var dbPath = "/music/" + relativeInMusic.TrimStart('/');
+            if (existing.Contains(dbPath))
+                continue;
+
+            var title = Path.GetFileNameWithoutExtension(path);
+            var track = new MusicTrack
+            {
+                Artist = "Unknown Artist",
+                Title = title,
+                Genre = string.Empty,
+                PlaylistName = string.Empty,
+                DateAdded = DateTime.Now,
+                Location = Path.GetDirectoryName(dbPath)?.Replace('\\', '/') ?? "/music",
+                FileName = Path.GetFileName(path)
+            };
+
+            Add(track);
+            existing.Add(dbPath);
+            added++;
+        }
+
+        return added;
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -313,22 +357,49 @@ public class MySqlMusicDatabase : MusicDatabase
                 LastPlayed = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
                 PlayCount = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),
                 Location = !string.IsNullOrEmpty(musicPath)
-                    ? (Path.GetDirectoryName(musicPath)?.Replace('\\', '/') ?? "/music")
+                    ? (Path.GetDirectoryName(NormalizeDbPath(musicPath))?.Replace('\\', '/') ?? "/music")
                     : "/music",
-                FileName = !string.IsNullOrEmpty(musicPath) ? Path.GetFileName(musicPath) : string.Empty
+                FileName = !string.IsNullOrEmpty(musicPath) ? Path.GetFileName(NormalizeDbPath(musicPath)) : string.Empty
             };
             list.Add(track);
         }
         return list;
     }
 
+    private static MusicTrack NormalizeTrackLocation(MusicTrack track)
+    {
+        track.Location = NormalizeDbPath(string.IsNullOrWhiteSpace(track.Location)
+            ? "/music"
+            : track.Location);
+        return track;
+    }
+
+    private static string NormalizeDbPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return "/music";
+
+        var normalized = path.Replace('\\', '/').Trim();
+
+        // Convert absolute install path into DB-relative path (/music/...)
+        var appBase = AppContext.BaseDirectory.Replace('\\', '/').TrimEnd('/');
+        if (normalized.StartsWith(appBase, StringComparison.OrdinalIgnoreCase) && normalized.Length > appBase.Length)
+            normalized = normalized[appBase.Length..];
+
+        if (!normalized.StartsWith('/'))
+            normalized = "/" + normalized.TrimStart('/');
+
+        return normalized;
+    }
+
     private static string BuildMusicPath(MusicTrack t)
     {
-        if (string.IsNullOrEmpty(t.Location))
-            return "/music/" + t.FileName;
-        // Normalise to forward-slash, relative-style path
-        var loc = t.Location.Replace('\\', '/').TrimEnd('/');
-        return loc + "/" + t.FileName;
+        var normalized = NormalizeTrackLocation(t);
+        if (string.IsNullOrWhiteSpace(normalized.FileName))
+            return NormalizeDbPath(normalized.Location);
+
+        var loc = NormalizeDbPath(normalized.Location).TrimEnd('/');
+        return loc + "/" + normalized.FileName;
     }
 
     private static string Csv(string v) => "\"" + v.Replace("\"", "\"\"") + "\"";

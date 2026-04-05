@@ -103,5 +103,30 @@ public class MusicTrack
     public int PlayCount { get; set; }
 
     [XmlIgnore]
-    public string FullPath => Path.Combine(Location, FileName);
+    public string FullPath
+    {
+        get
+        {
+            var location = (Location ?? string.Empty).Replace('\\', '/').Trim();
+            var fileName = FileName ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                return string.Empty;
+
+            if (Path.IsPathRooted(fileName))
+                return fileName;
+
+            // DB values are often stored as "/music/song.mp3"; resolve against install folder.
+            if (location.StartsWith("/"))
+            {
+                var relative = location.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                return Path.Combine(AppContext.BaseDirectory, relative, fileName);
+            }
+
+            if (string.IsNullOrWhiteSpace(location))
+                return Path.Combine(AppContext.BaseDirectory, "music", fileName);
+
+            return Path.Combine(location, fileName);
+        }
+    }
 }
