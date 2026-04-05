@@ -9,7 +9,7 @@ public class MainForm : Form
 {
     public UserAccount? CurrentUser { get; private set; }
 
-    public MusicDatabase MusicDb { get; } = new();
+    public MySqlMusicDatabase MusicDb { get; } = new();
     public JingleDatabase JingleDb { get; } = new();
     public AdDatabase AdDb { get; } = new();
     public BackgroundDatabase BackgroundDb { get; } = new();
@@ -40,7 +40,9 @@ public class MainForm : Form
     private void InitializeDatabases()
     {
         var basePath = AppDataPath;
-        MusicDb.Initialize(Path.Combine(basePath, "music.xml"));
+        // Wire up MySQL for music
+        MusicDb.InitializeMySql(AppSettings.Instance.BuildConnectionString());
+
         JingleDb.Initialize(Path.Combine(basePath, "jingles.xml"));
         AdDb.Initialize(Path.Combine(basePath, "ads.xml"));
         BackgroundDb.Initialize(Path.Combine(basePath, "backgrounds.xml"));
@@ -125,7 +127,7 @@ public class MainForm : Form
             new ToolStripMenuItem("&User Manager", null, (s, e) => OpenUserManager()),
             new ToolStripMenuItem("&Streaming...", null, (s, e) => OpenStreaming()),
             new ToolStripMenuItem("&Recorder", null, (s, e) => OpenRecorder()),
-            new ToolStripMenuItem("Log&Works", null, (s, e) => OpenLogWorks()),
+            new ToolStripMenuItem("&Logs", null, (s, e) => OpenLogs()),
             new ToolStripMenuItem("&Economic Categories", null, (s, e) => OpenEconomicCategories()),
             new ToolStripSeparator(),
             new ToolStripMenuItem("&Email Settings", null, (s, e) => OpenSettings()),
@@ -180,7 +182,7 @@ public class MainForm : Form
             new ToolStripSeparator(),
             NavBtn("🎙 Recorder",  "Sound Recorder",           OpenRecorder),
             NavBtn("📂 Files",     "File Manager",             OpenFileManager),
-            NavBtn("📋 LogWorks",  "Log Processor",            OpenLogWorks),
+            NavBtn("📋 Logs",     "Log Processor",            OpenLogs),
             NavBtn("⚠ Errors",    "Error Log",                OpenErrorLog),
             NavBtn("👤 Users",     "User Manager",             OpenUserManager),
         });
@@ -247,7 +249,18 @@ public class MainForm : Form
         AudioEngine.Instance.Error += (s, args) =>
             ErrorLog.Instance.Add($"Audio ({args.Device})", args.Message);
 
+        // Load MySQL music database
+        _statusRight.Text = "Connecting to music database…";
         await MusicDb.LoadAsync();
+        if (MusicDb.State == DatabaseState.Idle)
+        {
+            _statusRight.Text = "⚠ MySQL not connected – check Settings › MySQL";
+            MessageBox.Show(
+                "Could not connect to the MySQL music database.\n\nPlease configure the MySQL connection in Settings › MySQL\nand use 'Reload All Databases' after connecting.",
+                "GoonNet – Database Warning",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
         await JingleDb.LoadAsync();
         await AdDb.LoadAsync();
         await BackgroundDb.LoadAsync();
@@ -268,7 +281,9 @@ public class MainForm : Form
         }
         CurrentUser = login.LoggedInUser;
         _statusLeft.Text = $"User: {CurrentUser.FullName} ({CurrentUser.Role})";
-        _statusRight.Text = "Databases loaded";
+        _statusRight.Text = MusicDb.State == DatabaseState.Loaded
+            ? $"Databases loaded – {MusicDb.GetAll().Count} track(s) in music DB"
+            : "⚠ Music DB not connected";
 
         OpenStudio();
     }
@@ -298,6 +313,8 @@ public class MainForm : Form
         _statusRight.Text = "Reloading databases…";
         try
         {
+            // Re-read MySQL connection string (user may have updated Settings)
+            MusicDb.InitializeMySql(AppSettings.Instance.BuildConnectionString());
             await MusicDb.LoadAsync();
             await JingleDb.LoadAsync();
             await AdDb.LoadAsync();
@@ -308,7 +325,9 @@ public class MainForm : Form
             await LogDb.LoadAsync();
             await CategoryDb.LoadAsync();
             await SpotDb.LoadAsync();
-            _statusRight.Text = "Databases reloaded";
+            _statusRight.Text = MusicDb.State == DatabaseState.Loaded
+                ? $"Reloaded – {MusicDb.GetAll().Count} track(s)"
+                : "Reloaded (MySQL not connected)";
         }
         catch (Exception ex)
         {
@@ -442,11 +461,11 @@ public class MainForm : Form
         f.WindowState = FormWindowState.Maximized;
     }
 
-    private void OpenLogWorks()
+    private void OpenLogs()
     {
         foreach (Form child in MdiChildren)
-            if (child is LogWorksForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
-        var f = new LogWorksForm { MdiParent = this, LogDb = LogDb };
+            if (child is LogsForm) { child.Activate(); child.WindowState = FormWindowState.Maximized; return; }
+        var f = new LogsForm { MdiParent = this, LogDb = LogDb };
         f.Show();
         f.WindowState = FormWindowState.Maximized;
     }

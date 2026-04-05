@@ -10,7 +10,7 @@ namespace GoonNet;
 /// </summary>
 public class TrackPickerForm : Form
 {
-    public MusicDatabase MusicDb { get; set; } = null!;
+    public MySqlMusicDatabase MusicDb { get; set; } = null!;
     public MusicTrack? SelectedTrack { get; private set; }
 
     private ListView _lvTracks = null!;

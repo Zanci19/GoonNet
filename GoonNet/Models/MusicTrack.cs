@@ -10,20 +10,18 @@ public class MusicTrack
     [XmlAttribute]
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    // MySQL primary key (0 = not yet persisted to DB)
+    public int DbId { get; set; }
+
     public string Artist { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+    public int Year { get; set; }
     public string Genre { get; set; } = string.Empty;
     public TrackType Type { get; set; } = TrackType.Music;
-    public string Comments { get; set; } = string.Empty;
-    public string Tags { get; set; } = string.Empty;
-    public TrackFlag Flags { get; set; } = TrackFlag.None;
-    public int Rating { get; set; } = 50;
 
-    [XmlArray("Attributes")]
-    [XmlArrayItem("Attribute")]
-    public int[] Attributes { get; set; } = new int[5];
+    // Playlist name as stored in the music DB (e.g. "Stinger")
+    public string PlaylistName { get; set; } = string.Empty;
 
-    public double BPM { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string Format { get; set; } = string.Empty;
@@ -106,13 +104,4 @@ public class MusicTrack
 
     [XmlIgnore]
     public string FullPath => Path.Combine(Location, FileName);
-
-    [XmlIgnore]
-    public bool IsArchived => (Flags & TrackFlag.Archived) != 0;
-    [XmlIgnore]
-    public bool IsNew => (Flags & TrackFlag.New) != 0;
-    [XmlIgnore]
-    public bool IsPromoted => (Flags & TrackFlag.Promoted) != 0;
-    [XmlIgnore]
-    public bool IsDuplicate => (Flags & TrackFlag.Duplicate) != 0;
 }

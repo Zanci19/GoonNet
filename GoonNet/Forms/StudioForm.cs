@@ -8,7 +8,7 @@ namespace GoonNet;
 public class StudioForm : Form
 {
     public PlaylistDatabase PlaylistDb { get; set; } = null!;
-    public MusicDatabase MusicDb { get; set; } = null!;
+    public MySqlMusicDatabase MusicDb { get; set; } = null!;
     public LogDatabase LogDb { get; set; } = null!;
 
     private Playlist? _currentPlaylist;

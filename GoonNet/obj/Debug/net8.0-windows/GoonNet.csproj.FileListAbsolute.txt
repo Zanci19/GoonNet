@@ -26,3 +26,6 @@
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/libmp3lame.64.dll
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/NAudio.Lame.dll
 /home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/SoundTouch.Net.dll
+/home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/Microsoft.Extensions.Logging.Abstractions.dll
+/home/runner/work/GoonNet/GoonNet/GoonNet/bin/Debug/net8.0-windows/MySqlConnector.dll

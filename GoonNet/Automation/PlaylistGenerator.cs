@@ -59,15 +59,16 @@ public class PlaylistGenerator
     {
         var result = new List<MusicTrack>();
         var pool = tracks.ToList();
+        // Weight = inverse of play count (less played = more likely to be picked)
         while (pool.Count > 0)
         {
-            int totalWeight = pool.Sum(t => Math.Max(1, t.Rating));
-            int pick = _random.Next(totalWeight);
+            int totalWeight = pool.Sum(t => Math.Max(1, 100 - t.PlayCount));
+            int pick = _random.Next(Math.Max(1, totalWeight));
             int cumulative = 0;
             MusicTrack? chosen = null;
             foreach (var t in pool)
             {
-                cumulative += Math.Max(1, t.Rating);
+                cumulative += Math.Max(1, 100 - t.PlayCount);
                 if (pick < cumulative) { chosen = t; break; }
             }
             if (chosen != null)
@@ -87,7 +88,7 @@ public class PlaylistGenerator
         var now = DateTime.Now.TimeOfDay;
         bool isDaytime = now >= TimeSpan.FromHours(6) && now < TimeSpan.FromHours(22);
         if (isDaytime)
-            return tracks.OrderByDescending(t => t.Rating).ToList();
+            return tracks.OrderBy(t => t.LastPlayed ?? DateTime.MinValue).ToList();
         else
             return SelectRandom(tracks);
     }

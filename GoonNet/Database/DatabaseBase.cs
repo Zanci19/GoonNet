@@ -22,6 +22,9 @@ public abstract class DatabaseBase<T> where T : class
     public event EventHandler? OnLocked;
     public event EventHandler? OnUnlocked;
 
+    protected void InvokeOnLoaded() => OnLoaded?.Invoke(this, EventArgs.Empty);
+    protected void InvokeOnSaved() => OnSaved?.Invoke(this, EventArgs.Empty);
+
     protected abstract Guid GetId(T item);
     protected abstract XmlSerializer CreateSerializer();
 
@@ -34,7 +37,7 @@ public abstract class DatabaseBase<T> where T : class
             Directory.CreateDirectory(dir);
     }
 
-    public async Task LoadAsync()
+    public async virtual Task LoadAsync()
     {
         await _semaphore.WaitAsync();
         try
@@ -55,7 +58,7 @@ public abstract class DatabaseBase<T> where T : class
                 _items = new List<T>();
             }
             State = DatabaseState.Loaded;
-            OnLoaded?.Invoke(this, EventArgs.Empty);
+            InvokeOnLoaded();
         }
         catch
         {
@@ -68,7 +71,7 @@ public abstract class DatabaseBase<T> where T : class
         }
     }
 
-    public async Task SaveAsync()
+    public async virtual Task SaveAsync()
     {
         await _semaphore.WaitAsync();
         try
@@ -76,7 +79,7 @@ public abstract class DatabaseBase<T> where T : class
             var serializer = CreateSerializer();
             using var stream = File.Create(_filePath);
             serializer.Serialize(stream, _items);
-            OnSaved?.Invoke(this, EventArgs.Empty);
+            InvokeOnSaved();
         }
         finally
         {

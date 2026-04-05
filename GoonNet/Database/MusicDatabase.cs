@@ -21,17 +21,11 @@ public class MusicDatabase : DatabaseBase<MusicTrack>
     public IEnumerable<MusicTrack> GetByGenre(string genre)
         => _items.Where(t => t.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase));
 
-    public IEnumerable<MusicTrack> GetByFlags(TrackFlag flags)
-        => _items.Where(t => (t.Flags & flags) != 0);
-
     public IEnumerable<MusicTrack> GetNeverPlayed()
         => _items.Where(t => t.PlayCount == 0);
 
     public IEnumerable<MusicTrack> GetLeastPlayed(int count)
         => _items.OrderBy(t => t.PlayCount).Take(count);
-
-    public IEnumerable<MusicTrack> GetByBPMRange(double min, double max)
-        => _items.Where(t => t.BPM >= min && t.BPM <= max);
 
     public bool UpdatePlayStats(Guid id)
     {
@@ -42,7 +36,7 @@ public class MusicDatabase : DatabaseBase<MusicTrack>
         return true;
     }
 
-    public IEnumerable<MusicTrack> Search(string? artist, string? title, string? genre, TrackFlag flags)
+    public IEnumerable<MusicTrack> Search(string? artist, string? title, string? genre)
     {
         var query = _items.AsEnumerable();
         if (!string.IsNullOrWhiteSpace(artist))
@@ -51,11 +45,10 @@ public class MusicDatabase : DatabaseBase<MusicTrack>
             query = query.Where(t => t.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrWhiteSpace(genre))
             query = query.Where(t => t.Genre.Equals(genre, StringComparison.OrdinalIgnoreCase));
-        if (flags != TrackFlag.None)
-            query = query.Where(t => (t.Flags & flags) != 0);
         return query;
     }
 
     public IEnumerable<string> GetAllGenres()
         => _items.Select(t => t.Genre).Where(g => !string.IsNullOrEmpty(g)).Distinct().OrderBy(g => g);
 }
+
