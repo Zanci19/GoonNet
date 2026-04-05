@@ -160,9 +160,9 @@ public class SettingsForm : Form
         var connStr = $"Server={_txtMySqlServer.Text.Trim()};Port={_nudMySqlPort.Value};" +
                       $"Database={_txtMySqlDatabase.Text.Trim()};User ID={_txtMySqlUser.Text.Trim()};" +
                       $"Password={_txtMySqlPassword.Text};AllowZeroDateTime=True;ConvertZeroDateTime=True;";
-        var repo = new MySqlMusicDatabase();
-        repo.InitializeMySql(connStr);
-        if (repo.TestConnection(out var err))
+        var testDb = new MySqlMusicDatabase();
+        testDb.InitializeMySql(connStr);
+        if (testDb.TestConnection(out var err))
         {
             _lblTestResult.ForeColor = Color.DarkGreen;
             _lblTestResult.Text = "✓ Connection successful!";

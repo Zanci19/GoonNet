@@ -312,8 +312,10 @@ public class MySqlMusicDatabase : MusicDatabase
                 DateAdded = reader.IsDBNull(7) ? DateTime.Now : reader.GetDateTime(7),
                 LastPlayed = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
                 PlayCount = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),
-                Location = Path.GetDirectoryName(musicPath)?.Replace('\\', '/') ?? "/music",
-                FileName = Path.GetFileName(musicPath)
+                Location = !string.IsNullOrEmpty(musicPath)
+                    ? (Path.GetDirectoryName(musicPath)?.Replace('\\', '/') ?? "/music")
+                    : "/music",
+                FileName = !string.IsNullOrEmpty(musicPath) ? Path.GetFileName(musicPath) : string.Empty
             };
             list.Add(track);
         }
@@ -337,11 +339,35 @@ public class MySqlMusicDatabase : MusicDatabase
         var result = new List<string>();
         bool inQuote = false;
         var current = new System.Text.StringBuilder();
-        foreach (char c in line)
+        int i = 0;
+        while (i < line.Length)
         {
-            if (c == '"') { inQuote = !inQuote; }
-            else if (c == ',' && !inQuote) { result.Add(current.ToString()); current.Clear(); }
-            else { current.Append(c); }
+            char c = line[i];
+            if (inQuote)
+            {
+                if (c == '"')
+                {
+                    // Check for escaped double-quote ("")
+                    if (i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        current.Append('"');
+                        i += 2;
+                        continue;
+                    }
+                    inQuote = false;
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            else
+            {
+                if (c == '"') { inQuote = true; }
+                else if (c == ',') { result.Add(current.ToString()); current.Clear(); }
+                else { current.Append(c); }
+            }
+            i++;
         }
         result.Add(current.ToString());
         return result.ToArray();

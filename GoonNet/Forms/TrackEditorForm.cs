@@ -153,7 +153,7 @@ public class TrackEditorForm : Form
         // Normalise file path: store as /music/filename relative to app root
         var rawPath = _txtFileName.Text.Trim().Replace('\\', '/');
         var appBase = AppContext.BaseDirectory.Replace('\\', '/').TrimEnd('/');
-        if (rawPath.StartsWith(appBase, StringComparison.OrdinalIgnoreCase))
+        if (rawPath.StartsWith(appBase, StringComparison.OrdinalIgnoreCase) && rawPath.Length > appBase.Length)
             rawPath = rawPath[appBase.Length..];
         if (!rawPath.StartsWith("/"))
             rawPath = "/music/" + Path.GetFileName(rawPath);

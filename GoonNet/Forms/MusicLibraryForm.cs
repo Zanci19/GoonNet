@@ -273,6 +273,7 @@ public class MusicLibraryForm : Form
 
     private void BtnImport_Click(object? sender, EventArgs e)
     {
+        if (MusicDb == null) { MessageBox.Show("Music database not connected.", "GoonNet"); return; }
         using var dlg = new OpenFileDialog
         {
             Title = "Import Music Database",
@@ -302,6 +303,7 @@ public class MusicLibraryForm : Form
 
     private void DoExport(string format)
     {
+        if (MusicDb == null) { MessageBox.Show("Music database not connected.", "GoonNet"); return; }
         using var dlg = new SaveFileDialog
         {
             Title = "Export Music Database",
