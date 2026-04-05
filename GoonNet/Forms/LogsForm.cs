@@ -6,10 +6,10 @@ using System.Windows.Forms;
 namespace GoonNet;
 
 /// <summary>
-/// LogWorks – log processor that presents played songs and spots in a user-friendly fashion
+/// Logs – log processor that presents played songs and spots in a user-friendly fashion
 /// with all relevant data (artist, title, duration, time, log type).
 /// </summary>
-public class LogWorksForm : Form
+public class LogsForm : Form
 {
     public LogDatabase LogDb { get; set; } = null!;
 
@@ -24,7 +24,7 @@ public class LogWorksForm : Form
     private Label _lblTotalMusic = null!;
     private Label _lblTotalAds = null!;
 
-    public LogWorksForm()
+    public LogsForm()
     {
         InitializeComponent();
         Load += (s, e) => ApplyFilter();
@@ -32,7 +32,7 @@ public class LogWorksForm : Form
 
     private void InitializeComponent()
     {
-        Text = "LogWorks – Broadcast Log Processor";
+        Text = "Logs – Broadcast Log Processor";
         Size = new Size(1000, 640);
         MinimumSize = new Size(800, 480);
         BackColor = SystemColors.Control;
@@ -160,11 +160,11 @@ public class LogWorksForm : Form
             foreach (ListViewItem lvi in _lvLog.Items)
                 writer.WriteLine(string.Join(",", lvi.SubItems.Cast<ListViewItem.ListViewSubItem>()
                     .Select(s => $"\"{s.Text.Replace("\"", "\"\"")}\"")));
-            MessageBox.Show($"Exported {_lvLog.Items.Count} entries to:\n{dlg.FileName}", "LogWorks");
+            MessageBox.Show($"Exported {_lvLog.Items.Count} entries to:\n{dlg.FileName}", "Logs");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Export error:\n{ex.Message}", "LogWorks");
+            MessageBox.Show($"Export error:\n{ex.Message}", "Logs");
         }
     }
 }

@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "ylQ09HUXR8o=",
+  "dgSpecHash": "DZzPW2nbPxM=",
   "success": true,
   "projectFilePath": "/home/runner/work/GoonNet/GoonNet/GoonNet/GoonNet.csproj",
   "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.2/microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.2/microsoft.extensions.logging.abstractions.8.0.2.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.netcore.platforms/3.1.0/microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "/home/runner/.nuget/packages/microsoft.win32.registry/4.7.0/microsoft.win32.registry.4.7.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/mysqlconnector/2.5.0/mysqlconnector.2.5.0.nupkg.sha512",
     "/home/runner/.nuget/packages/naudio/2.2.1/naudio.2.2.1.nupkg.sha512",
     "/home/runner/.nuget/packages/naudio.asio/2.2.1/naudio.asio.2.2.1.nupkg.sha512",
     "/home/runner/.nuget/packages/naudio.core/2.2.1/naudio.core.2.2.1.nupkg.sha512",
