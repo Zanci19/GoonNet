@@ -89,8 +89,8 @@ public class MusicLibraryForm : Form
             FullRowSelect = true,
             GridLines = true,
             BorderStyle = BorderStyle.None,
-            BackColor = Color.Black,
-            ForeColor = Color.FromArgb(150, 255, 170),
+            BackColor = Color.White,
+            ForeColor = Color.Black,
             Font = new Font("Consolas", 8f)
         };
         _lvTracks.Columns.Add("#", 30);
@@ -111,8 +111,8 @@ public class MusicLibraryForm : Form
             FullRowSelect = true,
             GridLines = true,
             BorderStyle = BorderStyle.None,
-            BackColor = Color.Black,
-            ForeColor = Color.FromArgb(200, 220, 255),
+            BackColor = Color.White,
+            ForeColor = Color.Black,
             Font = new Font("Consolas", 8f)
         };
         _lvLibraryView.Columns.Add("Artist", 170);
@@ -121,8 +121,8 @@ public class MusicLibraryForm : Form
         _lvLibraryView.Columns.Add("Last Played", 130);
         _lvLibraryView.Columns.Add("File", 320);
 
-        split.Panel1.BackColor = Color.Black;
-        split.Panel2.BackColor = Color.Black;
+        split.Panel1.BackColor = Color.Gainsboro;
+        split.Panel2.BackColor = Color.Gainsboro;
         split.Panel1.Controls.Add(_lvTracks);
         split.Panel2.Controls.Add(_lvLibraryView);
 

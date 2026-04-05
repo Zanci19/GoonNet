@@ -252,7 +252,13 @@ public class MainForm : Form
         // Load MySQL music database
         _statusRight.Text = "Connecting to music database…";
         await MusicDb.LoadAsync();
-        if (MusicDb.State == DatabaseState.Idle)
+        if (MusicDb.State == DatabaseState.Loaded)
+        {
+            var autoAdded = MusicDb.AutoAddFromFolder(AppSettings.Instance.MusicFolder);
+            if (autoAdded > 0)
+                _statusRight.Text = $"Auto-added {autoAdded} track(s) from /music";
+        }
+        else
         {
             _statusRight.Text = "⚠ MySQL not connected – check Settings › MySQL";
             MessageBox.Show(
@@ -316,6 +322,8 @@ public class MainForm : Form
             // Re-read MySQL connection string (user may have updated Settings)
             MusicDb.InitializeMySql(AppSettings.Instance.BuildConnectionString());
             await MusicDb.LoadAsync();
+            if (MusicDb.State == DatabaseState.Loaded)
+                MusicDb.AutoAddFromFolder(AppSettings.Instance.MusicFolder);
             await JingleDb.LoadAsync();
             await AdDb.LoadAsync();
             await BackgroundDb.LoadAsync();

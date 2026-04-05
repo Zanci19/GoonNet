@@ -213,8 +213,8 @@ public class StudioForm : Form
             FullRowSelect = true,
             GridLines = true,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
-            BackColor = Color.Black,
-            ForeColor = Color.Yellow,
+            BackColor = Color.White,
+            ForeColor = Color.Black,
             BorderStyle = BorderStyle.Fixed3D,
             Font = new Font("Microsoft Sans Serif", 8f)
         };
@@ -305,7 +305,7 @@ public class StudioForm : Form
         pitchPanel.Controls.AddRange(new Control[] { _pitchSlider, _tempoSlider, _rateSlider, _lblPitchVal, _lblTempoVal, _lblRateVal });
 
         var libraryPanel = new GroupBox { Text = "Library", Dock = DockStyle.Fill };
-        _lvLibrary = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true, BorderStyle = BorderStyle.Fixed3D };
+        _lvLibrary = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true, BorderStyle = BorderStyle.Fixed3D, BackColor = Color.White, ForeColor = Color.Black };
         _lvLibrary.Columns.Add("Artist", 132);
         _lvLibrary.Columns.Add("Title", 200);
         _lvLibrary.Columns.Add("Dur", 48);
