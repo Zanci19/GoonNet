@@ -382,7 +382,7 @@ public class MySqlMusicDatabase : MusicDatabase
         var normalized = path.Replace('\\', '/').Trim();
 
         // Convert absolute install path into DB-relative path (/music/...)
-        var appBase = AppContext.BaseDirectory.Replace('\\', '/').TrimEnd('/');
+        var appBase = ProjectPaths.ProjectRoot.Replace('\\', '/').TrimEnd('/');
         if (normalized.StartsWith(appBase, StringComparison.OrdinalIgnoreCase) && normalized.Length > appBase.Length)
             normalized = normalized[appBase.Length..];
 

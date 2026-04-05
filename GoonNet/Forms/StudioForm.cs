@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace GoonNet;
@@ -37,6 +38,7 @@ public class StudioForm : Form
     private TrackBar _volumeSlider = null!;
     private Label _lblVolume = null!;
     private CheckBox _chkAutoPlay = null!;
+    private CheckBox _chkRadioAway = null!;
 
     // Reminder
     private System.Windows.Forms.Timer _reminderTimer = null!;
@@ -81,6 +83,8 @@ public class StudioForm : Form
     private Button _btnSaveSession = null!;
 
     private bool _manualJump;
+    private readonly Random _random = new();
+    private const int AwayStingerChancePercent = 20;
 
     private System.Windows.Forms.Timer _clockTimer = null!;
 
@@ -278,6 +282,7 @@ public class StudioForm : Form
         var transportPanel = new GroupBox { Text = "Transport", Dock = DockStyle.Fill };
         _chkAutoPlay = new CheckBox { Text = "Auto Play", Location = new Point(10, 20), Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
+        _chkRadioAway = new CheckBox { Text = "Radio Away (random)", Location = new Point(96, 20), Checked = false, AutoSize = true };
         var lblVol = new Label { Text = "Main", Location = new Point(10, 48), Size = new Size(36, 16) };
         _volumeSlider = new TrackBar { Location = new Point(48, 42), Size = new Size(160, 28), Minimum = 0, Maximum = 100, Value = 85, TickStyle = TickStyle.None };
         _volumeSlider.ValueChanged += (s, e) => { AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f; _lblVolume.Text = _volumeSlider.Value + "%"; };
@@ -290,7 +295,7 @@ public class StudioForm : Form
         _btnPreviewStop = new Button { Text = "[]", Location = new Point(278, 44), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
         _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
         _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(248, 76), Size = new Size(120, 20) };
-        transportPanel.Controls.AddRange(new Control[] { _chkAutoPlay, lblVol, _volumeSlider, _lblVolume, lblPreviewVol, _previewVolumeSlider, _btnPreviewPlay, _btnPreviewStop, _lblPreviewTrack });
+        transportPanel.Controls.AddRange(new Control[] { _chkAutoPlay, _chkRadioAway, lblVol, _volumeSlider, _lblVolume, lblPreviewVol, _previewVolumeSlider, _btnPreviewPlay, _btnPreviewStop, _lblPreviewTrack });
 
         var pitchPanel = new GroupBox { Text = "Deck", Dock = DockStyle.Fill };
         _pitchSlider = new TrackBar { Location = new Point(10, 18), Size = new Size(148, 24), Minimum = -24, Maximum = 24, TickStyle = TickStyle.None };
@@ -836,6 +841,9 @@ public class StudioForm : Form
 
     private void PlayCurrent()
     {
+        if ((_currentPlaylist == null || _currentPlaylist.Items.Count == 0) && _chkRadioAway.Checked)
+            BuildRadioAwayPlaylist();
+
         if (_currentPlaylist == null || _currentPlaylist.Items.Count == 0) return;
         if (_currentIndex < 0) _currentIndex = 0;
         if (_currentIndex >= _currentPlaylist.Items.Count) return;
@@ -897,12 +905,77 @@ public class StudioForm : Form
         _currentIndex++;
         if (_currentIndex >= _currentPlaylist.Items.Count)
         {
+            if (_chkRadioAway.Checked && BuildRadioAwayPlaylist())
+            {
+                _currentIndex = 0;
+                PlayCurrent();
+                ShowNextTrack();
+                return;
+            }
+
             _currentIndex = _currentPlaylist.Items.Count - 1;
             return;
         }
         PlayCurrent();
         ShowNextTrack();
     }
+
+    private bool BuildRadioAwayPlaylist()
+    {
+        var allTracks = (MusicDb?.GetAll() ?? Enumerable.Empty<MusicTrack>())
+            .Where(t => !string.IsNullOrWhiteSpace(t.FileName))
+            .ToList();
+
+        if (allTracks.Count == 0)
+            return false;
+
+        var stingers = allTracks
+            .Where(t => t.PlaylistName.Equals("Stinger", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var musicTracks = allTracks
+            .Where(t => !t.PlaylistName.Equals("Stinger", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(_ => _random.Next())
+            .ToList();
+
+        if (musicTracks.Count == 0)
+            musicTracks = allTracks.OrderBy(_ => _random.Next()).ToList();
+
+        var away = new Playlist
+        {
+            Name = $"Radio Away {DateTime.Now:HH:mm}",
+            IsAutomatic = true,
+            CreatedDate = DateTime.Now
+        };
+
+        int order = 0;
+        foreach (var track in musicTracks)
+        {
+            away.Items.Add(ToPlaylistItem(track, order++));
+
+            if (stingers.Count > 0 && _random.Next(100) < AwayStingerChancePercent)
+            {
+                var stinger = stingers[_random.Next(stingers.Count)];
+                away.Items.Add(ToPlaylistItem(stinger, order++));
+            }
+        }
+
+        _currentPlaylist = away;
+        _currentIndex = -1;
+        RefreshPlaylistView();
+        ShowNextTrack();
+        return away.Items.Count > 0;
+    }
+
+    private static PlaylistItem ToPlaylistItem(MusicTrack track, int order) => new()
+    {
+        TrackId = track.Id,
+        TrackType = TrackType.Music,
+        Order = order,
+        Duration = track.Duration,
+        Artist = track.Artist,
+        Title = track.Title
+    };
 
     private void MarkCurrentPlayed()
     {
