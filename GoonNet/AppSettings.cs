@@ -24,7 +24,7 @@ public class AppSettings
     public string MySqlPassword { get; set; } = string.Empty;
 
     // Paths
-    public string MusicFolder { get; set; } = Path.Combine(AppContext.BaseDirectory, "music");
+    public string MusicFolder { get; set; } = ProjectPaths.MusicFolder;
 
     // Audio
     public string MainAudioDevice { get; set; } = string.Empty;

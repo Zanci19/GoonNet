@@ -116,15 +116,15 @@ public class MusicTrack
             if (Path.IsPathRooted(fileName))
                 return fileName;
 
-            // DB values are often stored as "/music/song.mp3"; resolve against install folder.
+            // DB values are often stored as "/music/song.mp3"; resolve against project folder.
             if (location.StartsWith("/"))
             {
                 var relative = location.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-                return Path.Combine(AppContext.BaseDirectory, relative, fileName);
+                return Path.Combine(ProjectPaths.ProjectRoot, relative, fileName);
             }
 
             if (string.IsNullOrWhiteSpace(location))
-                return Path.Combine(AppContext.BaseDirectory, "music", fileName);
+                return Path.Combine(ProjectPaths.MusicFolder, fileName);
 
             return Path.Combine(location, fileName);
         }
