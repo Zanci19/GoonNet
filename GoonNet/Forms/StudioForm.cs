@@ -54,6 +54,7 @@ public class StudioForm : Form
     // Playlist + library list views
     private ListView _lvPlaylist = null!;
     private ListView _lvLibrary = null!;
+    private Button _btnAddToLibrary = null!;
     private Button _btnEditQueuePoints = null!;
     private Button _btnMix2Ch = null!;
 
@@ -276,46 +277,118 @@ public class StudioForm : Form
             Margin = Padding.Empty
         };
         bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 46f));
-        bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 210));
         bottomArea.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 54f));
 
+        // ── Transport GroupBox ────────────────────────────────────────────────
         var transportPanel = new GroupBox { Text = "Transport", Dock = DockStyle.Fill };
-        _chkAutoPlay = new CheckBox { Text = "Auto Play", Location = new Point(10, 20), Checked = true };
+        var transportTable = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 3,
+            Margin = new Padding(2),
+            Padding = new Padding(4, 2, 4, 2)
+        };
+        transportTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40));  // label
+        transportTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f)); // slider
+        transportTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 36));  // value
+        transportTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 76));  // preview buttons
+        transportTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));        // checkboxes row
+        transportTable.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));        // main volume
+        transportTable.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));        // cue volume
+
+        // Row 0: checkboxes (span all 4 columns)
+        _chkAutoPlay = new CheckBox { Text = "Auto Play", Dock = DockStyle.Fill, Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
-        _chkRadioAway = new CheckBox { Text = "Radio Away (random)", Location = new Point(96, 20), Checked = false, AutoSize = true };
-        var lblVol = new Label { Text = "Main", Location = new Point(10, 48), Size = new Size(36, 16) };
-        _volumeSlider = new TrackBar { Location = new Point(48, 42), Size = new Size(160, 28), Minimum = 0, Maximum = 100, Value = 85, TickStyle = TickStyle.None };
+        _chkRadioAway = new CheckBox { Text = "Radio Away (random)", Dock = DockStyle.Fill, Checked = false };
+        transportTable.Controls.Add(_chkAutoPlay, 0, 0);
+        transportTable.SetColumnSpan(_chkAutoPlay, 2);
+        transportTable.Controls.Add(_chkRadioAway, 2, 0);
+        transportTable.SetColumnSpan(_chkRadioAway, 2);
+
+        // Row 1: Main volume
+        var lblVol = new Label { Text = "Main", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        _volumeSlider = new TrackBar { Dock = DockStyle.Fill, Minimum = 0, Maximum = 100, Value = 85, TickStyle = TickStyle.None };
         _volumeSlider.ValueChanged += (s, e) => { AudioEngine.Instance.MainVolume = _volumeSlider.Value / 100f; _lblVolume.Text = _volumeSlider.Value + "%"; };
-        _lblVolume = new Label { Text = "85%", Location = new Point(212, 48), Size = new Size(36, 16) };
-        var lblPreviewVol = new Label { Text = "Cue", Location = new Point(10, 80), Size = new Size(36, 16) };
-        _previewVolumeSlider = new TrackBar { Location = new Point(48, 74), Size = new Size(160, 28), Minimum = 0, Maximum = 100, Value = 80, TickStyle = TickStyle.None };
-        _previewVolumeSlider.ValueChanged += (s, e) => AudioEngine.Instance.PreviewVolume = _previewVolumeSlider.Value / 100f;
-        _btnPreviewPlay = new Button { Text = ">", Location = new Point(248, 44), Size = new Size(28, 24), FlatStyle = FlatStyle.System };
+        _lblVolume = new Label { Text = "85%", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        _btnPreviewPlay = new Button { Text = ">", Dock = DockStyle.Fill, FlatStyle = FlatStyle.System };
         _btnPreviewPlay.Click += BtnPreviewPlay_Click;
-        _btnPreviewStop = new Button { Text = "[]", Location = new Point(278, 44), Size = new Size(36, 24), FlatStyle = FlatStyle.System };
+        transportTable.Controls.Add(lblVol, 0, 1);
+        transportTable.Controls.Add(_volumeSlider, 1, 1);
+        transportTable.Controls.Add(_lblVolume, 2, 1);
+        transportTable.Controls.Add(_btnPreviewPlay, 3, 1);
+
+        // Row 2: Cue volume
+        var lblPreviewVol = new Label { Text = "Cue", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        _previewVolumeSlider = new TrackBar { Dock = DockStyle.Fill, Minimum = 0, Maximum = 100, Value = 80, TickStyle = TickStyle.None };
+        _previewVolumeSlider.ValueChanged += (s, e) => AudioEngine.Instance.PreviewVolume = _previewVolumeSlider.Value / 100f;
+        _lblPreviewTrack = new Label { Text = "—", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+        _btnPreviewStop = new Button { Text = "[]", Dock = DockStyle.Fill, FlatStyle = FlatStyle.System };
         _btnPreviewStop.Click += (s, e) => AudioEngine.Instance.Stop(AudioDeviceType.Preview);
-        _lblPreviewTrack = new Label { Text = "No preview loaded", Location = new Point(248, 76), Size = new Size(120, 20) };
-        transportPanel.Controls.AddRange(new Control[] { _chkAutoPlay, _chkRadioAway, lblVol, _volumeSlider, _lblVolume, lblPreviewVol, _previewVolumeSlider, _btnPreviewPlay, _btnPreviewStop, _lblPreviewTrack });
+        transportTable.Controls.Add(lblPreviewVol, 0, 2);
+        transportTable.Controls.Add(_previewVolumeSlider, 1, 2);
+        transportTable.Controls.Add(_lblPreviewTrack, 2, 2);
+        transportTable.Controls.Add(_btnPreviewStop, 3, 2);
 
+        transportPanel.Controls.Add(transportTable);
+
+        // ── Deck GroupBox (pitch/tempo/rate) — use TableLayoutPanel to prevent overlap ──
         var pitchPanel = new GroupBox { Text = "Deck", Dock = DockStyle.Fill };
-        _pitchSlider = new TrackBar { Location = new Point(10, 18), Size = new Size(148, 24), Minimum = -24, Maximum = 24, TickStyle = TickStyle.None };
-        _pitchSlider.ValueChanged += PitchSlider_Changed;
-        _tempoSlider = new TrackBar { Location = new Point(10, 48), Size = new Size(148, 24), Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
-        _tempoSlider.ValueChanged += TempoSlider_Changed;
-        _rateSlider = new TrackBar { Location = new Point(10, 78), Size = new Size(148, 24), Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
-        _rateSlider.ValueChanged += RateSlider_Changed;
-        _lblPitchVal = new Label { Text = "0 st", Location = new Point(112, 16), Size = new Size(50, 16) };
-        _lblTempoVal = new Label { Text = "0%", Location = new Point(112, 46), Size = new Size(50, 16) };
-        _lblRateVal = new Label { Text = "x1.00", Location = new Point(112, 76), Size = new Size(50, 16) };
-        pitchPanel.Controls.AddRange(new Control[] { _pitchSlider, _tempoSlider, _rateSlider, _lblPitchVal, _lblTempoVal, _lblRateVal });
+        var deckTable = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 3,
+            Margin = new Padding(2),
+            Padding = new Padding(4, 2, 4, 2)
+        };
+        deckTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40)); // row name label
+        deckTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f)); // slider
+        deckTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 44)); // value label
+        deckTable.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3f));
+        deckTable.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3f));
+        deckTable.RowStyles.Add(new RowStyle(SizeType.Percent, 33.4f));
 
+        var lblPitchName = new Label { Text = "Pitch", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        _pitchSlider = new TrackBar { Dock = DockStyle.Fill, Minimum = -24, Maximum = 24, TickStyle = TickStyle.None };
+        _pitchSlider.ValueChanged += PitchSlider_Changed;
+        _lblPitchVal = new Label { Text = "0 st", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+
+        var lblTempoName = new Label { Text = "Tempo", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        _tempoSlider = new TrackBar { Dock = DockStyle.Fill, Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
+        _tempoSlider.ValueChanged += TempoSlider_Changed;
+        _lblTempoVal = new Label { Text = "0%", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+
+        var lblRateName = new Label { Text = "Rate", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        _rateSlider = new TrackBar { Dock = DockStyle.Fill, Minimum = -50, Maximum = 100, TickStyle = TickStyle.None };
+        _rateSlider.ValueChanged += RateSlider_Changed;
+        _lblRateVal = new Label { Text = "x1.00", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+
+        deckTable.Controls.Add(lblPitchName, 0, 0);
+        deckTable.Controls.Add(_pitchSlider, 1, 0);
+        deckTable.Controls.Add(_lblPitchVal, 2, 0);
+        deckTable.Controls.Add(lblTempoName, 0, 1);
+        deckTable.Controls.Add(_tempoSlider, 1, 1);
+        deckTable.Controls.Add(_lblTempoVal, 2, 1);
+        deckTable.Controls.Add(lblRateName, 0, 2);
+        deckTable.Controls.Add(_rateSlider, 1, 2);
+        deckTable.Controls.Add(_lblRateVal, 2, 2);
+        pitchPanel.Controls.Add(deckTable);
+
+        // ── Library GroupBox with Add-Track toolbar ───────────────────────────
         var libraryPanel = new GroupBox { Text = "Library", Dock = DockStyle.Fill };
+        var libToolbar = new Panel { Dock = DockStyle.Top, Height = 26 };
+        _btnAddToLibrary = new Button { Text = "+ Add", Location = new Point(4, 3), Size = new Size(56, 20), FlatStyle = FlatStyle.System };
+        _btnAddToLibrary.Click += BtnAddToLibrary_Click;
+        libToolbar.Controls.Add(_btnAddToLibrary);
         _lvLibrary = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true, BorderStyle = BorderStyle.Fixed3D, BackColor = Color.White, ForeColor = Color.Black };
         _lvLibrary.Columns.Add("Artist", 132);
         _lvLibrary.Columns.Add("Title", 200);
         _lvLibrary.Columns.Add("Dur", 48);
         _lvLibrary.ItemDrag += LvLibrary_ItemDrag;
         libraryPanel.Controls.Add(_lvLibrary);
+        libraryPanel.Controls.Add(libToolbar);
 
         bottomArea.Controls.Add(transportPanel, 0, 0);
         bottomArea.Controls.Add(pitchPanel, 1, 0);
@@ -1115,6 +1188,28 @@ public class StudioForm : Form
         using var dlg = new QueuePointEditorForm(track);
         if (dlg.ShowDialog(this) == DialogResult.OK)
             MusicDb?.Update(track);
+    }
+
+    private void BtnAddToLibrary_Click(object? sender, EventArgs e)
+    {
+        if (MusicDb == null)
+        {
+            MessageBox.Show("Music database not connected.", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        using var dlg = new TrackEditorForm { MusicDb = MusicDb };
+        if (dlg.ShowDialog(this) == DialogResult.OK && dlg.Track != null)
+        {
+            try
+            {
+                MusicDb.Add(dlg.Track);
+                PopulateLibraryView();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to add track:\n{ex.Message}", "GoonNet", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 
     private void LvPlaylist_DoubleClick(object? sender, EventArgs e)
