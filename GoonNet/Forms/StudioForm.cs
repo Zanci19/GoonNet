@@ -301,7 +301,7 @@ public class StudioForm : Form
         // Row 0: checkboxes (span all 4 columns)
         _chkAutoPlay = new CheckBox { Text = "Auto Play", Dock = DockStyle.Fill, Checked = true };
         _chkAutoPlay.CheckedChanged += (s, e) => _autoPlay = _chkAutoPlay.Checked;
-        _chkRadioAway = new CheckBox { Text = "Radio Away", Dock = DockStyle.Fill, Checked = false };
+        _chkRadioAway = new CheckBox { Text = "Radio Away (random)", Dock = DockStyle.Fill, Checked = false };
         transportTable.Controls.Add(_chkAutoPlay, 0, 0);
         transportTable.SetColumnSpan(_chkAutoPlay, 2);
         transportTable.Controls.Add(_chkRadioAway, 2, 0);
@@ -330,7 +330,6 @@ public class StudioForm : Form
         transportTable.Controls.Add(_previewVolumeSlider, 1, 2);
         transportTable.Controls.Add(_lblPreviewTrack, 2, 2);
         transportTable.Controls.Add(_btnPreviewStop, 3, 2);
-        transportTable.SetColumnSpan(_lblPreviewTrack, 1);
 
         transportPanel.Controls.Add(transportTable);
 
